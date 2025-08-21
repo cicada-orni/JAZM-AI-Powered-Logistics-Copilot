@@ -1,0 +1,26 @@
+@import "tailwindcss";
+/* Brand CSS variables (for use beyond Tailwind classes) */
+:root {
+  --void: #0c0c0c;
+  --spice: #d97706;
+  --ember: #9a3412;
+  --sand: #faf0e6;
+}
+
+/* Scope brand surface to app content, NOT the admin chrome */
+.jazm-theme {
+  background-color: var(--void);
+  color: var(--sand);
+  min-height: 100vh;
+}
+
+/* Optional helpers */
+.btn-spice {
+  background: var(--spice);
+}
+.text-sand {
+  color: var(--sand);
+}
+.bg-void {
+  background: var(--void);
+}
