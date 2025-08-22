@@ -1,0 +1,13 @@
+# apps/web/shopify.web.toml
+name = "web"
+roles = ["frontend"]
+
+# If you later add a separate Node API process, you can add another web.toml with roles=["backend"].
+# For now, our Next.js app is the single frontend process.
+
+[commands]
+dev = "pnpm dev"
+build = "pnpm build"
+
+# Optional: fix the dev port if you prefer (otherwise CLI assigns one)
+# port = 3000

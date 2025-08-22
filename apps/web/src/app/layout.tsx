@@ -1,5 +1,6 @@
+/* eslint-disable @next/next/no-sync-scripts */
+
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import "@shopify/polaris/build/esm/styles.css";
 import { display, body } from "./fonts";
@@ -8,7 +9,7 @@ import AppBridgeNav from "./AppBridgeNav.client";
 
 export const metadata: Metadata = {
   title: "JAZM",
-  description: "Al-powered logistics copilot",
+  description: "AI-powered logistics copilot",
 };
 
 export default function RootLayout({
@@ -18,23 +19,34 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <head>
-        {/* App Bridge v4 needs API key + script (no React Provider required) */}
+      {/* IMPORTANT: render a real <head> so AB loads synchronously */}
+      <head suppressHydrationWarning>
+        {/* 1) Critical paint: prevent white flash from first render */}
+        <style id="jazm-critical">{`
+    :root { color-scheme: dark; }         /* hint the UA chrome/UI to go dark */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0a0a0a;          /* your dark background */
+      color: #e5e7eb;                     /* your light text */
+    }
+  `}</style>
+
+        {/* 2) App Bridge v4 needs this meta BEFORE the script */}
         <meta
           name="shopify-api-key"
-          content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY}
+          content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? ""}
         />
-        <Script
-          id="shopify-app-bridge"
-          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-          strategy="beforeInteractive"
-        />
+
+        {/* 3) App Bridge v4 must be a plain, synchronous CDN script & first script */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
+
       <body>
         <Providers>
-          {/* Configure the Shopify Admin sidebar via App Bridge */}
           <AppBridgeNav />
-          {/* Brand scope around *our* content only */}
           <div className="jazm-theme">{children}</div>
         </Providers>
       </body>

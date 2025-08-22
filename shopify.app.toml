@@ -1,0 +1,26 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "2ff7b1b576f18d032987515d83c44752"
+web_directories = [ "apps/web" ]
+name = "JAZM - AI Logistics Copilot"
+application_url = "https://brazil-hierarchy-emacs-core.trycloudflare.com"
+embedded = true
+handle = "jazm"
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "jazm-ai.myshopify.com"
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,write_products"
+
+[auth]
+redirect_urls = ["https://brazil-hierarchy-emacs-core.trycloudflare.com/auth/callback", "https://brazil-hierarchy-emacs-core.trycloudflare.com/auth/shopify/callback", "https://brazil-hierarchy-emacs-core.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
