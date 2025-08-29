@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      eslint:
+        specifier: ^9.34.0
+        version: 9.34.0(jiti@2.5.1)
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.34.0(jiti@2.5.1))
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
@@ -949,6 +955,12 @@ packages:
 
   eslint-config-prettier@10.1.1:
     resolution: {integrity: sha512-4EQQr6wXwS+ZJSzaR5ZCrYgLxqvUjdXctaEtBqHcbkW944B1NQyO4qpdHQbXBONfwxXdkAY81HH4+LUfrg+zPw==}
+    hasBin: true
+    peerDependencies:
+      eslint: '>=7.0.0'
+
+  eslint-config-prettier@9.1.2:
+    resolution: {integrity: sha512-iI1f+D2ViGn+uvv5HuHVUamg8ll4tN+JRHGc6IJi4TP9Kl976C57fzPXgseXNs8v0iA8aSJpHsTWjDb9QJamGQ==}
     hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
@@ -2805,6 +2817,10 @@ snapshots:
       - supports-color
 
   eslint-config-prettier@10.1.1(eslint@9.34.0(jiti@2.5.1)):
+    dependencies:
+      eslint: 9.34.0(jiti@2.5.1)
+
+  eslint-config-prettier@9.1.2(eslint@9.34.0(jiti@2.5.1)):
     dependencies:
       eslint: 9.34.0(jiti@2.5.1)
 
