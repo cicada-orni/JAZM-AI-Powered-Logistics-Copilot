@@ -1,135 +1,76 @@
-# Turborepo starter
+# jazm-monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+Monorepo managed with Turborepo and pnpm. Contains a Next.js (TypeScript) app in `apps/web` and shared packages under `packages/`.
 
-## Using this example
+## Requirements
 
-Run the following command:
+- Node.js >= 18
+- pnpm (repo uses `pnpm@9`)
 
-```sh
-npx create-turbo@latest
+## Getting Started
+
+```bash
+# Install dependencies at the workspace root
+pnpm -w install
+
+# Start all apps in dev mode via Turbo
+pnpm -w dev
+
+# Alternatively, start just the web app
+pnpm -C apps/web dev
 ```
 
-## What's inside?
+## Workspace Structure
 
-This Turborepo includes the following packages/apps:
+- `apps/web`: Next.js app (TypeScript)
+- `packages/ui`: Shared UI library (if present)
+- `packages/eslint-config`: Shared ESLint config
+- `packages/typescript-config`: Shared TS configs
 
-### Apps and Packages
+## Scripts (root)
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `dev`: Runs `turbo run dev` across the workspace
+- `build`: Runs `turbo run build`
+- `lint`: Runs `turbo run lint`
+- `check-types`: Runs `turbo run check-types`
+- `format`: Formats the entire repo with Prettier (`prettier --write .`)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Linting & Formatting
 
-### Utilities
+- **ESLint**: The web app uses Next.js ESLint rules and extends `prettier` to disable stylistic conflicts. See `apps/web/.eslintrc.json`.
+- **Prettier**: A single config at the repo root (`.prettierrc.json`).
+  - `semi: false`
+  - `singleQuote: true`
+  - `trailingComma: "es5"`
+  - `tabWidth: 2`
+  - `printWidth: 80`
+- **Ignore**: Files and folders excluded from formatting are listed in `.prettierignore` (e.g., `node_modules`, `.next`, `.turbo`, lockfiles).
 
-This Turborepo has some additional tools already setup for you:
+Run formatting from the root:
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm -w run format
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## Turborepo
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+This repository uses Turborepo for task running and caching. Common commands:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+```bash
+# Run a script in a single project
+pnpm -C apps/web build
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+# Filtered turbo tasks
+pnpm exec turbo run build --filter=@jazm/web
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## Contributing
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+1. Create a branch
+2. Make your changes
+3. Run `pnpm -w lint` and `pnpm -w run format`
+4. Open a PR
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+## License
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+MIT
