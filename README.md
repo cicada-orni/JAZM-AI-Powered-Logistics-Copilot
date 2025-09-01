@@ -1,135 +1,212 @@
-# Turborepo starter
+<div align="center">
 
-This Turborepo starter is maintained by the Turborepo core team.
+# JAZM Monorepo — Shopify App (AI Logistics Copilot)
 
-## Using this example
+AI‑powered logistics copilot for Shopify merchants. Built as an embedded Shopify app with Next.js 15, Polaris, and App Bridge, organized in a Turborepo monorepo.
 
-Run the following command:
+</div>
 
-```sh
-npx create-turbo@latest
-```
+## At a Glance
 
-## What's inside?
+- Monorepo managed by Turborepo and PNPM workspaces
+- Embedded Shopify Admin UI using App Bridge and Polaris
+- Next.js App Router, React 19, Turbopack dev/build
+- Strict TypeScript, shared ESLint/TS configs, internal UI package
+- CSP hardened to allow embedding only inside Shopify Admin
 
-This Turborepo includes the following packages/apps:
+---
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## Repository Structure
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+.
+├─ apps/
+│  ├─ web/                     # Embedded Shopify Admin app (Next.js)
+│  │  ├─ src/app/              # Next.js App Router routes
+│  │  │  ├─ layout.tsx         # App Bridge + Polaris provider, CSP relies on next.config
+│  │  │  ├─ page.tsx           # Home
+│  │  │  ├─ dashboard/page.tsx # Dashboard
+│  │  │  ├─ analytics/page.tsx # Analytics
+│  │  │  ├─ products/page.tsx  # Products
+│  │  │  ├─ customers/page.tsx # Customers
+│  │  │  ├─ notifications/page.tsx # Notifications
+│  │  │  └─ settings/page.tsx  # Settings
+│  │  ├─ next.config.ts        # CSP header (frame-ancestors Shopify Admin)
+│  │  ├─ shopify.app.toml      # Shopify CLI app metadata
+│  │  └─ shopify.web.toml      # Shopify CLI web process config
+│  └─ api/                     # Placeholder for future backend/API
+├─ packages/
+│  ├─ ui/                      # Shared React UI primitives
+│  ├─ eslint-config/           # Shared ESLint config
+│  └─ typescript-config/       # Shared tsconfig presets
+├─ turbo.json                  # Turborepo task pipeline
+├─ pnpm-workspace.yaml         # Workspace packages
+└─ package.json                # Root scripts (dev, build, lint, types)
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## Tech Stack
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+- Next.js: 15.x (App Router) with Turbopack for dev/build
+- React: 19.x
+- Shopify: App Bridge React 4.x, Polaris 13.x
+- Tooling: Turborepo, PNPM 9, TypeScript 5, ESLint 9, Prettier 3
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## Shopify Embedding
 
-### Develop
+- App Bridge script is loaded in the global layout and the Shopify API key is exposed via a meta tag for App Bridge initialization.
+  - See: `apps/web/src/app/layout.tsx`
+- CSP limits embedding to Shopify Admin domains to prevent click‑jacking.
+  - See: `apps/web/next.config.ts`
 
-To develop all apps and packages, run the following command:
+## App Routes (UI)
 
-```
-cd my-turborepo
+- `/` Home
+- `/dashboard` Dashboard
+- `/analytics` Analytics
+- `/products` Products
+- `/customers` Customers
+- `/notifications` Notifications
+- `/settings` Settings
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+All pages use Shopify Polaris components and are currently scaffolded with placeholders for upcoming analytics and operations.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+## Packages
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+- `@repo/ui`: Small shared UI primitives (`Button`, `Card`, `Code`).
+- `@repo/eslint-config`: Centralized ESLint config (TypeScript, Next.js, Prettier compatible).
+- `@repo/typescript-config`: Shared tsconfig presets for apps and libraries.
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+## Getting Started
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+Prerequisites:
 
-### Remote Caching
+- Node.js >= 18
+- PNPM 9 (`corepack enable` or `npm i -g pnpm@9`)
+- Shopify Partner account + dev store (for embedding/testing)
+- Shopify CLI (optional but recommended): `npm i -g @shopify/cli` and `shopify login`
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+Install dependencies (root):
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+pnpm install
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+Run all apps in dev (Turbo orchestrates):
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+```bash
+pnpm dev
 ```
 
-## Useful Links
+Run only the web app:
 
-Learn more about the power of Turborepo:
+```bash
+pnpm --filter @jazm/web dev
+# or
+turbo run dev --filter=@jazm/web
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+Type checking, linting, formatting:
+
+```bash
+pnpm check-types
+pnpm lint
+pnpm format
+```
+
+Build & run:
+
+```bash
+pnpm build
+pnpm --filter @jazm/web start
+```
+
+## Shopify Dev Workflow
+
+The repository contains Shopify CLI configuration for the embedded app in `apps/web/`.
+
+- `apps/web/shopify.app.toml` sets metadata: app name, `client_id` (API key), `application_url` (dev tunnel), scopes, and OAuth redirect URLs.
+- `apps/web/shopify.web.toml` defines the frontend role and maps the OAuth callback to `/api/auth/callback` (route to be implemented).
+
+Recommended dev flow (with Shopify CLI):
+
+```bash
+cd apps/web
+shopify app dev
+# CLI will start a tunnel, update URLs (automatically_update_urls_on_dev = true),
+# and run `pnpm dev` as defined in shopify.web.toml
+```
+
+Notes:
+
+- Ensure your Shopify app’s API key is available to the client as `NEXT_PUBLIC_SHOPIFY_APP_KEY`.
+- The OAuth callback path `/api/auth/callback` is referenced by `shopify.web.toml` but not implemented yet in the Next.js app; add it before enabling OAuth flows.
+- When deploying, update `application_url` and `redirect_urls` in `shopify.app.toml` to match production.
+
+## Configuration & Environment
+
+Environment variables used by the web app:
+
+- `NEXT_PUBLIC_SHOPIFY_APP_KEY`: Public Shopify App API key exposed to the client for App Bridge. Place in `apps/web/.env.local` during development.
+
+Other configuration files:
+
+- `apps/web/next.config.ts`: Adds CSP header to allow framing only inside Shopify Admin (`frame-ancestors https://admin.shopify.com https://*.myshopify.com`).
+- `apps/web/tsconfig.json`: Path alias `@/*` → `apps/web/src/*`.
+- `turbo.json`: Defines pipelines for `build`, `dev`, `lint`, `check-types`.
+
+## Architecture Overview
+
+```
+           ┌───────────────────────────── Monorepo (Turborepo) ─────────────────────────────┐
+           │                                                                                │
+           │  apps/web (Next.js App Router)                                                 │
+           │   ├─ layout.tsx → App Bridge <script> + <meta shopify-api-key> + Polaris       │
+           │   ├─ pages (Dashboard, Analytics, Products, Customers, Notifications, Settings)│
+           │   └─ next.config.ts → CSP frame-ancestors (Shopify Admin only)                 │
+           │                                                                                │
+           │  apps/api (placeholder)                                                        │
+           │                                                                                │
+           │  packages/ui → shared React primitives (Button, Card, Code)                    │
+           │  packages/eslint-config → shared lint rules                                    │
+           │  packages/typescript-config → shared tsconfig presets                          │
+           └────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Security Hardening
+
+- Embedding restricted via CSP `frame-ancestors` to Shopify Admin domains.
+- Avoid committing secrets. Keep secrets in `.env.local` (ignored) and use `NEXT_PUBLIC_` only for safe public values.
+- App Bridge key is public by design; do not expose API secrets to the browser.
+
+## Common Scripts
+
+Root-level scripts (orchestrated with Turbo):
+
+- `pnpm dev` — Run all dev servers
+- `pnpm build` — Build all apps/packages
+- `pnpm lint` — Lint all workspaces
+- `pnpm check-types` — Type-check across workspaces
+- `pnpm format` — Prettier formatting
+
+Web app scripts:
+
+- `pnpm --filter @jazm/web dev` — Next.js dev (Turbopack)
+- `pnpm --filter @jazm/web build` — Next.js build
+- `pnpm --filter @jazm/web start` — Next.js start
+
+## Roadmap
+
+- Implement OAuth flow and `/api/auth/callback` endpoint
+- Add server-side app/backend in `apps/api` for secure Shopify calls & webhooks
+- RTO analytics, dashboards, notifications, and product/customer insights
+- Tests, CI, and deployment guides (Vercel or custom infra)
+
+## Troubleshooting
+
+- Blank iframe in Shopify Admin: confirm `NEXT_PUBLIC_SHOPIFY_APP_KEY` and CSP header; ensure the app is installed in the dev store and `application_url` is reachable.
+- Navigation issues: App Bridge `NavMenu` requires valid relative links; verify routes exist under `src/app`.
+- Styling: Polaris styles are imported globally in `layout.tsx`.
+
+---
+
+Maintained by the JAZM team. Contributions and issues are welcome.

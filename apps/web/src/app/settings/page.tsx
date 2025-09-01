@@ -1,20 +1,20 @@
 'use client'
 import { Page, Layout, Card, Text } from '@shopify/polaris'
 
-export default function Dashboard() {
+export default function Settings() {
   return (
     <Page
-      title="Dashboard"
-      primaryAction={{ content: 'View Analytics', onAction: () => {} }}
+      title="Settings"
+      primaryAction={{ content: 'Manage Settings', onAction: () => {} }}
     >
       <Layout>
         <Layout.AnnotatedSection
           title="Product Insights"
-          description="View RTO risks and logistics data per product."
+          description="View RTO risks and logistics data per setting."
         >
           <Card>
             <Text as="p">
-              Placeholder for dashboard and analytics. Coming soon!
+              Placeholder for setting and analytics. Coming soon!
             </Text>
           </Card>
         </Layout.AnnotatedSection>

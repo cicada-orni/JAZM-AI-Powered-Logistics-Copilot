@@ -3,6 +3,9 @@
 import type { Metadata } from 'next'
 import { PolarisProvider } from '@/components/providers/PolarisProvider'
 import { NavMenu } from '@shopify/app-bridge-react'
+import '@shopify/polaris/build/esm/styles.css'
+
+// METADATA
 export const metadata: Metadata = {
   title: 'JAZM DASHBOARD',
   description: 'AI-Powered Logistics Copilot',
