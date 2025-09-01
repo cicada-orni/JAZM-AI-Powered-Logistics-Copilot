@@ -1,0 +1,6 @@
+roles = ["frontend"]                # this process serves the embedded UI
+auth_callback_path = ["/api/auth/callback"]  # dev override for OAuth callback
+
+[commands]
+dev = "pnpm dev"                    # how to start Next.js
+port = 3000                         # optional: keep it predictable

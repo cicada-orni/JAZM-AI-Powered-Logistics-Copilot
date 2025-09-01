@@ -1,7 +1,21 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+// apps/web/next.config.ts
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Allow embedding only inside Shopify Admin
+          {
+            key: 'Content-Security-Policy',
+            value:
+              'frame-ancestors https://admin.shopify.com https://*.myshopify.com',
+          },
+        ],
+      },
+    ]
+  },
+}
+export default nextConfig

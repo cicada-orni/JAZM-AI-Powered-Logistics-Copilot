@@ -1,0 +1,24 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "334bde799c57b9129b8be201c807e7e1"
+name = "JAZM - AI Logistics Copilot"
+application_url = "https://horizontal-jon-behind-charger.trycloudflare.com"
+embedded = true
+handle = "jazm-ai-logistics-copilot"
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "jazm-ai.myshopify.com"
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_orders,read_products"
+
+[auth]
+redirect_urls = ["https://horizontal-jon-behind-charger.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
