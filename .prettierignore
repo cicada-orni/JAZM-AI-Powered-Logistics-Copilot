@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+
+# Build outputs / caches
+.next
+.turbo
+dist
+build
+out
+coverage
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Misc
+.DS_Store
