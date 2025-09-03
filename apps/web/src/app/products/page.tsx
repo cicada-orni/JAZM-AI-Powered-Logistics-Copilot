@@ -13,9 +13,7 @@ export default function Products() {
           description="View RTO risks and logistics data per product."
         >
           <Card>
-            <Text as="p">
-              Placeholder for product list and analytics. Coming soon!
-            </Text>
+            <Text as="p">Placeholder</Text>
           </Card>
         </Layout.AnnotatedSection>
       </Layout>
