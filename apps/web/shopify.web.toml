@@ -1,6 +1,13 @@
-roles = ["frontend"]                # this process serves the embedded UI
-auth_callback_path = ["/api/auth/callback"]  # dev override for OAuth callback
+# apps/web/shopify.web.toml
+name = "web"
+roles = ["frontend"]
+auth_callback_path = ["/api/auth/callback"]
+# If you add a separate backend later, you’ll create another web.toml with roles=["backend"].
+# For now, Next.js serves everything.
 
 [commands]
-dev = "pnpm dev"                    # how to start Next.js
-port = 3000                         # optional: keep it predictable
+dev = "pnpm dev"
+build = "pnpm build"
+
+# Optional (helps the CLI detect your server if you prefer a fixed port)
+port = 3000

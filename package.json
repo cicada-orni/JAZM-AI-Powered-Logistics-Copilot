@@ -6,16 +6,29 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "turbo run check-types",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link --project-ref",
+    "supabase:new": "supabase migration new",
+    "supabase:push": "supabase db push"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
     "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.6.2",
+    "supabase": "^2.39.2",
     "turbo": "^2.5.6",
     "typescript": "5.9.2"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "react": "19",
+        "react-dom": "19"
+      }
+    }
   }
 }

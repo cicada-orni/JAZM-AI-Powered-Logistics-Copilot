@@ -21,7 +21,7 @@ export default function RootLayout({
       <head>
         <meta
           name="shopify-api-key"
-          content={process.env.NEXT_PUBLIC_SHOPIFY_APP_KEY}
+          content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY}
         />
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
@@ -30,7 +30,7 @@ export default function RootLayout({
           <a href="/" rel="home">
             JAZM Home
           </a>
-          <a href="/dashboard">Dashboard</a>
+          <a href="/">Dashboard</a>
           <a href="/analytics">Analytics</a>
           <a href="/products">Products</a>
           <a href="/customers">Customers</a>
