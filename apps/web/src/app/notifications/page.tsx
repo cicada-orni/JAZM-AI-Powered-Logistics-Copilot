@@ -10,7 +10,7 @@ export default function Notifications() {
       <Layout>
         <Layout.AnnotatedSection
           title="Notifications"
-          description="View RTO risks and logistics data per notification."
+          description="View RTO risks and ."
         >
           <Card>
             <Text as="p">Placeholder</Text>
