@@ -26,14 +26,3 @@ export default function Dashboard() {
     </>
   )
 }
-
-// apps/web/src/app/page.tsx (top-level app page)
-// import AuthInit from '@/components/AuthInit.client'
-// export default function Page() {
-//   return (
-//     <>
-//       <AuthInit />
-//       {/* your dashboard content */}
-//     </>
-//   )
-// }
