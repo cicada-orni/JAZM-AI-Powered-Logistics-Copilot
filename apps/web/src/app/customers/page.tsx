@@ -13,9 +13,7 @@ export default function Customers() {
           description="View RTO risks and logistics data per product."
         >
           <Card>
-            <Text as="p">
-              Placeholder for customers data and analytics. Coming soon!
-            </Text>
+            <Text as="p">Placeholder for customers data and analytics.</Text>
           </Card>
         </Layout.AnnotatedSection>
       </Layout>
