@@ -16,7 +16,6 @@ export function AuthInit() {
         if (!host) throw new Error('missing_host')
         sessionStorage.setItem('shopifyHost', host)
 
-        // 2) Create a typed App Bridge instance
         const app = createApp({
           apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, // public key
           host, // base64 shop+host from Admin

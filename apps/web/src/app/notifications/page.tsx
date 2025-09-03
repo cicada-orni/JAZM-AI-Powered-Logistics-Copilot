@@ -13,9 +13,7 @@ export default function Notifications() {
           description="View RTO risks and logistics data per notification."
         >
           <Card>
-            <Text as="p">
-              Placeholder for notification list and analytics. Coming soon!
-            </Text>
+            <Text as="p">Placeholder</Text>
           </Card>
         </Layout.AnnotatedSection>
       </Layout>
