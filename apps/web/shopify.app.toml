@@ -2,7 +2,7 @@
 
 client_id = "334bde799c57b9129b8be201c807e7e1"
 name = "JAZM - AI Logistics Copilot"
-application_url = "https://vp-ltd-corps-stages.trycloudflare.com"
+application_url = "https://grew-boots-measurement-offensive.trycloudflare.com"
 embedded = true
 handle = "jazm-ai-logistics-copilot"
 
@@ -19,7 +19,7 @@ api_version = "2025-07"
 scopes = "read_customers,read_orders,read_products"
 
 [auth]
-redirect_urls = ["https://vp-ltd-corps-stages.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://grew-boots-measurement-offensive.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

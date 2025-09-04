@@ -1,29 +1,23 @@
-import 'server-only'
-import { createClient } from '@supabase/supabase-js'
+import 'server-only' // Ensures this file is only bundled server-side
+import { Pool } from 'pg' // Node Postgres client with connection pooling
 
-// 1) Create a server-side Supabase client
-export const supabase = createClient(
-  process.env.SUPABASE_URL!, // https://<ref>.supabase.co
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-only (full access)
-  {
-    // 2) ensure we use runtime fetch (works on Vercel)
-    fetch: fetch.bind(globalThis),
-  }
-)
+// Create one pool per process using the Neon URL from .env.local
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!, // includes sslmode=require
+})
 
-// 3) Save/refresh the offline token idempotently
+// Reusable helper: insert or update the shop’s offline token
 export async function upsertShopToken(params: {
   shop_domain: string
   offline_access_token: string
 }) {
-  const { error } = await supabase.from('shops').upsert(
-    {
-      shop_domain: params.shop_domain,
-      offline_access_token: params.offline_access_token,
-      installed_at: new Date().toISOString(),
-      uninstalled: false,
-    },
-    { onConflict: 'shop_domain' }
+  await pool.query(
+    `insert into shops (shop_domain, offline_access_token, installed_at, uninstalled)
+     values ($1, $2, now(), false)
+     on conflict (shop_domain) do update
+       set offline_access_token = excluded.offline_access_token,
+           installed_at = now(),
+           uninstalled = false`,
+    [params.shop_domain, params.offline_access_token]
   )
-  if (error) throw error
 }
