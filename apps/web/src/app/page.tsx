@@ -1,11 +1,9 @@
 'use client'
 import { Page, Layout, Card, Text } from '@shopify/polaris'
-import { AuthInit } from '@/components/AuthInit'
 
 export default function Dashboard() {
   return (
     <>
-      <AuthInit />
       <Page
         title="Dashboard"
         primaryAction={{ content: 'View Analytics', onAction: () => {} }}

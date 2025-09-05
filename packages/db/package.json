@@ -1,0 +1,22 @@
+{
+  "name": "@jazm/db",
+  "version": "1.0.0",
+  "main": "./src/client.ts",
+  "exports": {
+    ".": "./src/client.ts",
+    "./shopTokens": "./src/shopTokens.ts"
+  },
+  "scripts": {
+    "db:new": "prisma migrate dev --create-only",
+    "db:apply": "prisma migrate deploy",
+    "db:pull": "prisma db pull",
+    "db:gen": "prisma generate",
+    "db:studio": "prisma studio"
+  },
+  "devDependencies": {
+    "prisma": "^6.15.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.15.0"
+  }
+}

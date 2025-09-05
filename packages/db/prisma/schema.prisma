@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model shops {
+  shop_domain          String   @id
+  offline_access_token String
+  installed_at         DateTime @default(now()) @db.Timestamptz(6)
+  uninstalled          Boolean  @default(false)
+}

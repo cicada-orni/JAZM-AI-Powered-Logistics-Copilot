@@ -6,11 +6,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "check-types": "turbo run check-types",
-    "supabase:login": "supabase login",
-    "supabase:link": "supabase link --project-ref",
-    "supabase:new": "supabase migration new",
-    "supabase:push": "supabase db push"
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "eslint-config-prettier": "^9.1.0",
@@ -29,6 +25,10 @@
         "react": "19",
         "react-dom": "19"
       }
+    },
+    "allowedDeprecatedVersions": {
+      "@shopify/network": "*",
+      "node-domexception": "*"
     }
   }
 }
