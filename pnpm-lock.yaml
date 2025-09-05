@@ -28,6 +28,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@jazm/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@shopify/app-bridge':
         specifier: ^3.7.10
         version: 3.7.10

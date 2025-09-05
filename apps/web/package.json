@@ -11,6 +11,7 @@
     "shopify:reset": "shopify app dev --reset"
   },
   "dependencies": {
+    "@jazm/db": "workspace:*",
     "@shopify/app-bridge": "^3.7.10",
     "@shopify/app-bridge-react": "^4.2.2",
     "@shopify/polaris": "^13.9.5",

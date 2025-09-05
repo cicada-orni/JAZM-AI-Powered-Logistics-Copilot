@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-export default function AuthInit() {
+export function AuthInit() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {

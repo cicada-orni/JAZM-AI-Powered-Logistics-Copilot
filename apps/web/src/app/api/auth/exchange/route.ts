@@ -15,14 +15,21 @@ export async function POST(req: Request) {
     const { dest: shopUrl } = decoded
     const shopDomain = new URL(shopUrl).hostname
 
-    const exchanged = shopify.auth.tokenExchange({
+    const { session } = await shopify.auth.tokenExchange({
       shop: shopDomain,
       sessionToken,
       requestedTokenType: RequestedTokenType.OfflineAccessToken,
     })
 
-    const { accessToken } = exchanged
-    await upsertShopToken({ shopDomain, offlineAccessToken: accessToken! })
+    const accessToken = session?.accessToken
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'Token exchange returned no access token' },
+        { status: 409 }
+      )
+    }
+
+    await upsertShopToken({ shopDomain, offlineAccessToken: accessToken })
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Token exchange failed:', error)

@@ -1,7 +1,8 @@
 import type { NextConfig } from 'next'
 
 // apps/web/next.config.ts
-const nextConfig = {
+const nextConfig: NextConfig = {
+  transpilePackages: ['@jazm/db'],
   async headers() {
     return [
       {

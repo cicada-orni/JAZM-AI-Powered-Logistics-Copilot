@@ -1,25 +1,22 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "334bde799c57b9129b8be201c807e7e1"
-name = "JAZM - AI Logistics Copilot"
-application_url = "https://grew-boots-measurement-offensive.trycloudflare.com"
+client_id = "7c47981c40e68d983254060b7197167e"
+name = "JAZM"
+application_url = "https://justify-handling-european-nuclear.trycloudflare.com"
 embedded = true
-handle = "jazm-ai-logistics-copilot"
+
+[webhooks]
+api_version = "2025-07"
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "jazm-ai.myshopify.com"
 include_config_on_deploy = true
 
-[webhooks]
-api_version = "2025-07"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_customers,read_orders,read_products"
 
 [auth]
-redirect_urls = ["https://grew-boots-measurement-offensive.trycloudflare.com/api/auth/callback"]
+redirect_urls = [ ]
 
-[pos]
-embedded = false
