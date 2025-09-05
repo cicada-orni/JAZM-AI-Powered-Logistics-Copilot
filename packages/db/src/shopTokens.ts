@@ -16,3 +16,14 @@ export async function upsertShopToken(params: {
     },
   })
 }
+
+export async function markUninstalled(shopDomain: string) {
+  await prisma.shops.update({
+    where: {
+      shop_domain: shopDomain,
+    },
+    data: {
+      uninstalled: true,
+    },
+  })
+}

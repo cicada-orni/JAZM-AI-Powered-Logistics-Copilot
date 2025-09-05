@@ -1,22 +1,31 @@
-# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
-
+# shopify.app.toml
 client_id = "7c47981c40e68d983254060b7197167e"
 name = "JAZM"
 application_url = "https://justify-handling-european-nuclear.trycloudflare.com"
 embedded = true
 
-[webhooks]
-api_version = "2025-07"
-
-[build]
-automatically_update_urls_on_dev = true
-dev_store_url = "jazm-ai.myshopify.com"
-include_config_on_deploy = true
-
-
 [access_scopes]
 scopes = "read_customers,read_orders,read_products"
 
 [auth]
-redirect_urls = [ ]
+# MUST be absolute URLs (valid HTTPS)
+redirect_urls = [
+  "https://justify-handling-european-nuclear.trycloudflare.com/api/auth/callback"
+]
 
+[webhooks]
+api_version = "2025-07"
+
+# app-level webhook
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/api/webhooks/app-uninstalled"
+
+# GDPR (use compliance_topics, not topics)
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+uri = "/api/webhooks/gdpr"
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "jazm-ai.myshopify.com"
