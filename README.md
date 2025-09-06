@@ -1,212 +1,214 @@
 <div align="center">
 
-# JAZM Monorepo — Shopify App (AI Logistics Copilot)
+# JAZM Monorepo — Shopify Embedded App (AI Logistics Copilot)
 
-AI‑powered logistics copilot for Shopify merchants. Built as an embedded Shopify app with Next.js 15, Polaris, and App Bridge, organized in a Turborepo monorepo.
+Enterprise‑grade Shopify app built with Next.js 15 (App Router), Polaris, and App Bridge in a Turborepo workspace. Implements OAuth session token exchange, app‑level webhooks, and a Prisma‑backed Postgres store for durable offline tokens.
 
 </div>
 
-## At a Glance
+## Highlights
 
-- Monorepo managed by Turborepo and PNPM workspaces
-- Embedded Shopify Admin UI using App Bridge and Polaris
-- Next.js App Router, React 19, Turbopack dev/build
-- Strict TypeScript, shared ESLint/TS configs, internal UI package
-- CSP hardened to allow embedding only inside Shopify Admin
+- Next.js 15 + React 19 (App Router, Turbopack)
+- Shopify App Bridge + Polaris UI
+- OAuth session token → Offline token exchange
+- App‑level webhooks (app/uninstalled) with DB updates
+- Prisma + PostgreSQL (shops table, migrations)
+- Turborepo + PNPM workspaces, shared ESLint/TS configs
+- Strict CSP to allow embedding only in Shopify Admin
 
 ---
 
-## Repository Structure
+## Monorepo Structure
 
 ```
 .
 ├─ apps/
-│  ├─ web/                     # Embedded Shopify Admin app (Next.js)
-│  │  ├─ src/app/              # Next.js App Router routes
-│  │  │  ├─ layout.tsx         # App Bridge + Polaris provider, CSP relies on next.config
-│  │  │  ├─ page.tsx           # Home
-│  │  │  ├─ dashboard/page.tsx # Dashboard
-│  │  │  ├─ analytics/page.tsx # Analytics
-│  │  │  ├─ products/page.tsx  # Products
-│  │  │  ├─ customers/page.tsx # Customers
-│  │  │  ├─ notifications/page.tsx # Notifications
-│  │  │  └─ settings/page.tsx  # Settings
-│  │  ├─ next.config.ts        # CSP header (frame-ancestors Shopify Admin)
-│  │  ├─ shopify.app.toml      # Shopify CLI app metadata
+│  ├─ web/                      # Embedded Shopify Admin app (Next.js)
+│  │  ├─ src/
+│  │  │  ├─ app/
+│  │  │  │  ├─ layout.tsx       # App Bridge script + Polaris provider
+│  │  │  │  ├─ page.tsx         # Dashboard (AuthInit triggers token exchange)
+│  │  │  │  └─ api/
+│  │  │  │     ├─ auth/exchange/route.ts           # Session→offline token exchange
+│  │  │  │     └─ webhooks/app-uninstalled/route.ts# Mark shop uninstalled
+│  │  │  └─ components/providers/
+│  │  │     ├─ PolarisProvider.tsx
+│  │  │     └─ AuthInit.client.tsx                 # Calls /api/auth/exchange
+│  │  ├─ next.config.ts        # CSP: frame-ancestors Shopify Admin only
+│  │  ├─ shopify.app.toml      # App metadata, scopes, webhooks, URLs
 │  │  └─ shopify.web.toml      # Shopify CLI web process config
-│  └─ api/                     # Placeholder for future backend/API
+│  └─ api/                      # (placeholder for future backend)
 ├─ packages/
-│  ├─ ui/                      # Shared React UI primitives
-│  ├─ eslint-config/           # Shared ESLint config
-│  └─ typescript-config/       # Shared tsconfig presets
-├─ turbo.json                  # Turborepo task pipeline
-├─ pnpm-workspace.yaml         # Workspace packages
-└─ package.json                # Root scripts (dev, build, lint, types)
+│  ├─ db/                       # Prisma client + helpers
+│  │  ├─ prisma/
+│  │  │  ├─ schema.prisma       # shops model + datasource
+│  │  │  └─ migrations/         # SQL migrations
+│  │  └─ src/
+│  │     ├─ client.ts           # PrismaClient singleton (generated output)
+│  │     └─ shopTokens.ts       # upsertShopToken, markUninstalled
+│  ├─ ui/                       # Shared UI primitives
+│  ├─ eslint-config/            # Shared ESLint config
+│  └─ typescript-config/        # Shared tsconfig presets
+├─ turbo.json                    # Turborepo pipelines
+├─ pnpm-workspace.yaml           # Workspace packages
+└─ package.json                  # Root scripts (dev, build, lint, types)
 ```
 
-## Tech Stack
+## End‑to‑End OAuth Flow
 
-- Next.js: 15.x (App Router) with Turbopack for dev/build
-- React: 19.x
-- Shopify: App Bridge React 4.x, Polaris 13.x
-- Tooling: Turborepo, PNPM 9, TypeScript 5, ESLint 9, Prettier 3
+1) App Bridge renders inside Shopify Admin with API key exposed in a meta tag.
+   - `apps/web/src/app/layout.tsx`: adds `<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js">` and sets `meta name="shopify-api-key"` from `NEXT_PUBLIC_SHOPIFY_API_KEY`.
+2) On first load, the client calls Shopify to get a session token and exchanges it server‑side for an offline token:
+   - `apps/web/src/components/providers/AuthInit.client.tsx`: calls `window.shopify.idToken()` then POSTs to `/api/auth/exchange`.
+   - `apps/web/src/app/api/auth/exchange/route.ts`: decodes the session token, calls `shopify.auth.tokenExchange({ requestedTokenType: OfflineAccessToken })`, extracts `session.accessToken`, and persists it with `@jazm/db/shopTokens.upsertShopToken`.
+3) Durable tokens live in Postgres (`shops` table) and are marked uninstalled via webhook.
+   - `apps/web/src/app/api/webhooks/app-uninstalled/route.ts`: reads `x-shopify-shop-domain` and calls `markUninstalled`.
 
-## Shopify Embedding
+## Webhooks
 
-- App Bridge script is loaded in the global layout and the Shopify API key is exposed via a meta tag for App Bridge initialization.
-  - See: `apps/web/src/app/layout.tsx`
-- CSP limits embedding to Shopify Admin domains to prevent click‑jacking.
-  - See: `apps/web/next.config.ts`
+- `app/uninstalled`: configured in `apps/web/shopify.app.toml` and handled by `apps/web/src/app/api/webhooks/app-uninstalled/route.ts`.
+- GDPR topics (`customers/data_request`, `customers/redact`, `shop/redact`) are registered in the TOML; add `apps/web/src/app/api/webhooks/gdpr/route.ts` to process them as needed.
 
-## App Routes (UI)
+## Database (Prisma + Postgres)
 
-- `/` Home
-- `/dashboard` Dashboard
-- `/analytics` Analytics
-- `/products` Products
-- `/customers` Customers
-- `/notifications` Notifications
-- `/settings` Settings
+- Schema: `packages/db/prisma/schema.prisma`
 
-All pages use Shopify Polaris components and are currently scaffolded with placeholders for upcoming analytics and operations.
+  ```prisma
+  model shops {
+    shop_domain          String   @id
+    offline_access_token String
+    installed_at         DateTime @default(now()) @db.Timestamptz(6)
+    uninstalled          Boolean  @default(false)
+  }
+  ```
 
-## Packages
+- Generated client output: `packages/db/src/generated/prisma` (see generator output in `schema.prisma`).
+- Helper API: `packages/db/src/shopTokens.ts`
+  - `upsertShopToken({ shopDomain, offlineAccessToken })`
+  - `markUninstalled(shopDomain)`
 
-- `@repo/ui`: Small shared UI primitives (`Button`, `Card`, `Code`).
-- `@repo/eslint-config`: Centralized ESLint config (TypeScript, Next.js, Prettier compatible).
-- `@repo/typescript-config`: Shared tsconfig presets for apps and libraries.
+## Environment Configuration
 
-## Getting Started
+Create `apps/web/.env.local` with Shopify and database settings. Example:
 
-Prerequisites:
+```env
+# Public (safe to expose to the browser)
+NEXT_PUBLIC_SHOPIFY_API_KEY=<your_app_api_key>
 
-- Node.js >= 18
-- PNPM 9 (`corepack enable` or `npm i -g pnpm@9`)
-- Shopify Partner account + dev store (for embedding/testing)
-- Shopify CLI (optional but recommended): `npm i -g @shopify/cli` and `shopify login`
+# Server‑side
+SHOPIFY_API_KEY=<your_app_api_key>
+SHOPIFY_API_SECRET=<your_app_api_secret>
+SHOPIFY_APP_URL=https://<your-dev-tunnel-or-domain>
+SHOPIFY_SCOPES=read_orders,read_products,read_customers
 
-Install dependencies (root):
-
-```bash
-pnpm install
-```
-
-Run all apps in dev (Turbo orchestrates):
-
-```bash
-pnpm dev
-```
-
-Run only the web app:
-
-```bash
-pnpm --filter @jazm/web dev
-# or
-turbo run dev --filter=@jazm/web
-```
-
-Type checking, linting, formatting:
-
-```bash
-pnpm check-types
-pnpm lint
-pnpm format
-```
-
-Build & run:
-
-```bash
-pnpm build
-pnpm --filter @jazm/web start
-```
-
-## Shopify Dev Workflow
-
-The repository contains Shopify CLI configuration for the embedded app in `apps/web/`.
-
-- `apps/web/shopify.app.toml` sets metadata: app name, `client_id` (API key), `application_url` (dev tunnel), scopes, and OAuth redirect URLs.
-- `apps/web/shopify.web.toml` defines the frontend role and maps the OAuth callback to `/api/auth/callback` (route to be implemented).
-
-Recommended dev flow (with Shopify CLI):
-
-```bash
-cd apps/web
-shopify app dev
-# CLI will start a tunnel, update URLs (automatically_update_urls_on_dev = true),
-# and run `pnpm dev` as defined in shopify.web.toml
+# Postgres (e.g., Neon/Supabase/Cloud SQL)
+DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
+DIRECT_URL=postgresql://user:pass@host:5432/db?sslmode=require
 ```
 
 Notes:
 
-- Ensure your Shopify app’s API key is available to the client as `NEXT_PUBLIC_SHOPIFY_APP_KEY`.
-- The OAuth callback path `/api/auth/callback` is referenced by `shopify.web.toml` but not implemented yet in the Next.js app; add it before enabling OAuth flows.
-- When deploying, update `application_url` and `redirect_urls` in `shopify.app.toml` to match production.
+- `DATABASE_URL` and `DIRECT_URL` are required by Prisma (see `schema.prisma` datasource).
+- Keep secrets out of git; `.env.local` is ignored. Only `NEXT_PUBLIC_*` values are exposed to the browser.
 
-## Configuration & Environment
+## Local Development
 
-Environment variables used by the web app:
+Prerequisites
 
-- `NEXT_PUBLIC_SHOPIFY_APP_KEY`: Public Shopify App API key exposed to the client for App Bridge. Place in `apps/web/.env.local` during development.
+- Node 22.x (enforced via `engines`)
+- PNPM 9 (`corepack enable` or `npm i -g pnpm@9`)
+- Shopify CLI up‑to‑date (`npm i -g @shopify/cli@latest`), Partner account, and a dev store
+- A Postgres database (Neon/Supabase/local)
 
-Other configuration files:
+Install & generate
 
-- `apps/web/next.config.ts`: Adds CSP header to allow framing only inside Shopify Admin (`frame-ancestors https://admin.shopify.com https://*.myshopify.com`).
-- `apps/web/tsconfig.json`: Path alias `@/*` → `apps/web/src/*`.
-- `turbo.json`: Defines pipelines for `build`, `dev`, `lint`, `check-types`.
+```bash
+pnpm install
 
-## Architecture Overview
+# Generate Prisma client and apply migrations
+pnpm -F @jazm/db db:gen
+pnpm -F @jazm/db db:apply
 
-```
-           ┌───────────────────────────── Monorepo (Turborepo) ─────────────────────────────┐
-           │                                                                                │
-           │  apps/web (Next.js App Router)                                                 │
-           │   ├─ layout.tsx → App Bridge <script> + <meta shopify-api-key> + Polaris       │
-           │   ├─ pages (Dashboard, Analytics, Products, Customers, Notifications, Settings)│
-           │   └─ next.config.ts → CSP frame-ancestors (Shopify Admin only)                 │
-           │                                                                                │
-           │  apps/api (placeholder)                                                        │
-           │                                                                                │
-           │  packages/ui → shared React primitives (Button, Card, Code)                    │
-           │  packages/eslint-config → shared lint rules                                    │
-           │  packages/typescript-config → shared tsconfig presets                          │
-           └────────────────────────────────────────────────────────────────────────────────┘
+# Optional: open Prisma Studio
+pnpm -F @jazm/db db:studio
 ```
 
-## Security Hardening
+Run the app via Shopify CLI (recommended)
 
-- Embedding restricted via CSP `frame-ancestors` to Shopify Admin domains.
-- Avoid committing secrets. Keep secrets in `.env.local` (ignored) and use `NEXT_PUBLIC_` only for safe public values.
-- App Bridge key is public by design; do not expose API secrets to the browser.
+```bash
+cd apps/web
+pnpm shopify:dev
+# Uses shopify.app.toml (auto‑updates URLs) and shopify.web.toml (dev/build commands).
+```
 
-## Common Scripts
+Direct Next.js dev (without CLI tunnel)
 
-Root-level scripts (orchestrated with Turbo):
+```bash
+pnpm -w --filter @jazm/web dev
+```
 
-- `pnpm dev` — Run all dev servers
-- `pnpm build` — Build all apps/packages
-- `pnpm lint` — Lint all workspaces
-- `pnpm check-types` — Type-check across workspaces
-- `pnpm format` — Prettier formatting
+Type‑check and lint
 
-Web app scripts:
+```bash
+pnpm check-types
+pnpm lint
+```
 
-- `pnpm --filter @jazm/web dev` — Next.js dev (Turbopack)
-- `pnpm --filter @jazm/web build` — Next.js build
-- `pnpm --filter @jazm/web start` — Next.js start
+## HTTP Interfaces
 
-## Roadmap
+- `POST /api/auth/exchange` (server)
+  - Headers: `Authorization: Bearer <session_token_from_App_Bridge>`
+  - Response: `{ ok: true }` on success; error JSON otherwise
+  - Code: `apps/web/src/app/api/auth/exchange/route.ts`
 
-- Implement OAuth flow and `/api/auth/callback` endpoint
-- Add server-side app/backend in `apps/api` for secure Shopify calls & webhooks
-- RTO analytics, dashboards, notifications, and product/customer insights
-- Tests, CI, and deployment guides (Vercel or custom infra)
+- `POST /api/webhooks/app-uninstalled` (Shopify → app)
+  - Headers: `x-shopify-shop-domain: <shop.myshopify.com>`
+  - Response: `{ ok: true }`
+  - Code: `apps/web/src/app/api/webhooks/app-uninstalled/route.ts`
+
+Add GDPR webhook handler at `/api/webhooks/gdpr` to process the configured compliance topics.
+
+## Security & Compliance
+
+- CSP: `frame-ancestors https://admin.shopify.com https://*.myshopify.com` (`apps/web/next.config.ts`)
+- OAuth: Exchange transient session tokens for durable offline tokens server‑side only
+- Secrets: Keep only safe values under `NEXT_PUBLIC_*`. Everything else must remain server‑side
+- Webhooks: Validate HMAC in production (stub not shown here)
 
 ## Troubleshooting
 
-- Blank iframe in Shopify Admin: confirm `NEXT_PUBLIC_SHOPIFY_APP_KEY` and CSP header; ensure the app is installed in the dev store and `application_url` is reachable.
-- Navigation issues: App Bridge `NavMenu` requires valid relative links; verify routes exist under `src/app`.
-- Styling: Polaris styles are imported globally in `layout.tsx`.
+- Shopify CLI version error: update with `npm i -g @shopify/cli@latest`
+- Module not found `@jazm/db/shopTokens`: ensure `@jazm/db` is a dependency of the web app and `transpilePackages: ['@jazm/db']` is set (`apps/web/next.config.ts`)
+- Database connection: ensure `DATABASE_URL` (and `DIRECT_URL`) are present and reachable
+- Blank iframe in Admin: confirm `NEXT_PUBLIC_SHOPIFY_API_KEY`, CSP config, app installed to the dev store, and `application_url` is the tunnel URL
+
+## Scripts
+
+Root:
+
+- `pnpm dev` — run all dev servers via Turbo
+- `pnpm build` — build all apps/packages
+- `pnpm check-types` — TypeScript across workspaces
+- `pnpm lint` — ESLint across workspaces
+- `pnpm format` — Prettier formatting
+
+Web app:
+
+- `pnpm --filter @jazm/web dev|build|start`
+- `pnpm --filter @jazm/web shopify:dev` — start via Shopify CLI
+
+DB package:
+
+- `pnpm -F @jazm/db db:gen|db:apply|db:new|db:pull|db:studio`
+
+## Roadmap
+
+- Add `/api/auth/callback` handler to complement redirect URLs
+- Validate webhook HMAC and add GDPR webhook handler
+- Extend analytics dashboards and product/customer insights
+- CI, tests, and deployment guides (Vercel or custom infra)
 
 ---
 
-Maintained by the JAZM team. Contributions and issues are welcome.
+Maintained by the JAZM team.
+
