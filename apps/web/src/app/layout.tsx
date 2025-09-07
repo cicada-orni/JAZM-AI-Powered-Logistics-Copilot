@@ -2,8 +2,11 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 import type { Metadata } from 'next'
 import { PolarisProvider } from '@/components/providers/PolarisProvider'
-import { NavMenu } from '@shopify/app-bridge-react'
+import dynamic from 'next/dynamic'
 import '@shopify/polaris/build/esm/styles.css'
+
+import HostGuard from '@/components/app/HostGuard.client'
+import AppNavMenu from '@/components/app/AppNavMenu'
 
 // METADATA
 export const metadata: Metadata = {
@@ -26,17 +29,8 @@ export default function RootLayout({
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <NavMenu>
-          <a href="/" rel="home">
-            JAZM Home
-          </a>
-          <a href="/">Dashboard</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/products">Products</a>
-          <a href="/customers">Customers</a>
-          <a href="/notifications">Notifications</a>
-          <a href="/settings">Settings</a>
-        </NavMenu>
+        <HostGuard />
+        <AppNavMenu />
         <PolarisProvider>{children}</PolarisProvider>
       </body>
     </html>
