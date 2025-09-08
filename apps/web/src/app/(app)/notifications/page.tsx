@@ -1,22 +1,41 @@
+// apps/web/src/app/notifications/page.tsx
 'use client'
-import { Page, Layout, Card, Text } from '@shopify/polaris'
 
-export default function Notifications() {
+import PageTitleBar from '@/components/app/PageTitleBar'
+import { Page, Card, BlockStack, Text } from '@shopify/polaris'
+import { useAB } from '@/lib/useAB'
+import { BULK_SYNC_MODAL_ID } from '@/components/app/BulkSyncModal'
+
+export default function NotificationsPage() {
+  const { showModal, toastSuccess } = useAB()
+
   return (
-    <Page
-      title="Notifications"
-      primaryAction={{ content: 'Notifications', onAction: () => {} }}
-    >
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Notifications"
-          description="View RTO risks and logistics data per notification."
-        >
+    <>
+      <PageTitleBar
+        title="Notifications"
+        breadcrumbLabel="Dashboard"
+        primaryAction={{
+          label: 'Bulk sync',
+          onClick: () => showModal(BULK_SYNC_MODAL_ID),
+        }}
+        secondaryActions={[
+          {
+            label: 'Mark all read',
+            onClick: () => toastSuccess('All caught up'),
+          },
+        ]}
+      />
+
+      <Page>
+        <BlockStack gap="400">
           <Card>
-            <Text as="p">Placeholder</Text>
+            <Text as="p" tone="subdued">
+              Placeholder — your webhook notices and operational alerts will
+              appear here.
+            </Text>
           </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
-    </Page>
+        </BlockStack>
+      </Page>
+    </>
   )
 }

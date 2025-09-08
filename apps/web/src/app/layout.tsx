@@ -2,9 +2,8 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 import type { Metadata } from 'next'
 import { PolarisProvider } from '@/components/providers/PolarisProvider'
-import dynamic from 'next/dynamic'
 import '@shopify/polaris/build/esm/styles.css'
-
+import BulkSyncModal from '@/components/app/BulkSyncModal'
 import HostGuard from '@/components/app/HostGuard.client'
 import AppNavMenu from '@/components/app/AppNavMenu'
 
@@ -32,6 +31,7 @@ export default function RootLayout({
         <HostGuard />
         <AppNavMenu />
         <PolarisProvider>{children}</PolarisProvider>
+        <BulkSyncModal />
       </body>
     </html>
   )
