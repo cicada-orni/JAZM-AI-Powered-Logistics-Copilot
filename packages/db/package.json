@@ -4,7 +4,8 @@
   "main": "./src/client.ts",
   "exports": {
     ".": "./src/client.ts",
-    "./shopTokens": "./src/shopTokens.ts"
+    "./shopTokens": "./src/shopTokens.ts",
+    "./webhooks": "./src/webhooks.ts"
   },
   "scripts": {
     "db:new": "prisma migrate dev --create-only",
