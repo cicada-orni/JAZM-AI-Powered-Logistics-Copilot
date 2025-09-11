@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/client.ts",
     "./shopTokens": "./src/shopTokens.ts",
-    "./webhooks": "./src/webhooks.ts"
+    "./webhooks": "./src/webhooks.ts",
+    "./getUniqueShop": "./src/getUniqueShop.ts"
   },
   "scripts": {
     "db:new": "prisma migrate dev --create-only",

@@ -31,6 +31,9 @@ importers:
       '@jazm/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@shopify/admin-api-client':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@shopify/app-bridge':
         specifier: ^3.7.10
         version: 3.7.10

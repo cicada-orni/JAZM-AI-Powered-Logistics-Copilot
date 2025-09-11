@@ -1,5 +1,6 @@
 import '@shopify/shopify-api/adapters/node'
-import { shopifyApi, LATEST_API_VERSION } from '@shopify/shopify-api'
+import { shopifyApi } from '@shopify/shopify-api'
+import { SHOPIFY_ADMIN_API_VERSION } from '@/config/shopifyApiVersion'
 
 export const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY!,
@@ -7,5 +8,5 @@ export const shopify = shopifyApi({
   scopes: (process.env.SHOPIFY_SCOPES ?? '').split(','),
   hostName: new URL(process.env.SHOPIFY_APP_URL!).host,
   isEmbeddedApp: true,
-  apiVersion: LATEST_API_VERSION,
+  apiVersion: SHOPIFY_ADMIN_API_VERSION,
 })

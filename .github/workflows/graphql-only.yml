@@ -1,0 +1,53 @@
+name: policy-graphql-only
+
+on:
+  pull_request:
+    paths:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '.github/workflows/graphql-only.yml'
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) Block REST Admin API usage anywhere in the repo
+      - name: Block REST Admin API usage
+        run: |
+          set -euo pipefail
+          if git grep -nEi "/admin/api/.*/rest|shopify:admin/api/.*/rest|createAdminRestApiClient|clients\.Rest\b|restResources\b" \
+            -- ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
+            echo "❌ REST Admin API usage detected. Use GraphQL Admin API only."
+            exit 1
+          else
+            echo "✅ No REST Admin API usage found."
+          fi
+
+      # 2) Enforce single source of truth for Admin API version
+      #    Only apps/web/src/config/shopifyApiVersion.ts may reference:
+      #    - ApiVersion.<X>
+      #    - Hard-coded version handles like 2025-07 in code or URLs
+      - name: Enforce single Admin API version constant
+        run: |
+          set -euo pipefail
+          CONFIG_FILE='apps/web/src/config/shopifyApiVersion.ts'
+
+          # (a) Forbid ApiVersion.<...> anywhere except the config file
+          if git grep -nE "\bApiVersion\." -- \
+            ":(exclude)$CONFIG_FILE" ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
+            echo "❌ Direct ApiVersion.* usage found outside $CONFIG_FILE. Import SHOPIFY_ADMIN_API_VERSION instead."
+            exit 1
+          else
+            echo "✅ No direct ApiVersion.* usage outside $CONFIG_FILE."
+          fi
+
+          # (b) Forbid hard-coded version handles (e.g., 2025-07) in code/URLs outside the config file
+          if git grep -nE "/admin/api/20[0-9]{2}-(01|04|07|10)|['\"]20[0-9]{2}-(01|04|07|10)['\"]|shopify:admin/api/20[0-9]{2}-(01|04|07|10)" -- \
+            ":(exclude)$CONFIG_FILE" ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
+            echo "❌ Hard-coded Admin API version found outside $CONFIG_FILE. Use SHOPIFY_ADMIN_API_VERSION."
+            exit 1
+          else
+            echo "✅ No hard-coded Admin API version handles outside $CONFIG_FILE."
+          fi
