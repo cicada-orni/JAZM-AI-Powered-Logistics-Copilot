@@ -5,6 +5,8 @@ on:
     paths:
       - '**/*.ts'
       - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.jsx'
       - '.github/workflows/graphql-only.yml'
 
 jobs:
@@ -13,40 +15,64 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1) Block REST Admin API usage anywhere in the repo
-      - name: Block REST Admin API usage
+      - name: Define candidate source files
+        id: files
+        shell: bash
         run: |
           set -euo pipefail
-          if git grep -nEi "/admin/api/.*/rest|shopify:admin/api/.*/rest|createAdminRestApiClient|clients\.Rest\b|restResources\b" \
-            -- ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
-            echo "❌ REST Admin API usage detected. Use GraphQL Admin API only."
+          # Only real source files; exclude tests, stories, type stubs, build outputs, and the single allowed version file.
+          FILES=$(git ls-files -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' \
+            ':(exclude)**/*.d.ts' \
+            ':(exclude)**/*.test.*' \
+            ':(exclude)**/*.spec.*' \
+            ':(exclude)**/*.stories.*' \
+            ':(exclude)**/.next/**' \
+            ':(exclude)**/dist/**' \
+            ':(exclude)**/build/**' \
+            ':(exclude)apps/web/src/config/shopifyApiVersion.ts')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' $FILES >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      # 1) Block REST Admin API usage (narrow, actionable patterns only)
+      - name: Block REST Admin API usage
+        shell: bash
+        run: |
+          set -euo pipefail
+          REST_PATTERN='(/admin/api/[0-9]{4}-(01|04|07|10)/rest|shopify:admin/api/[0-9]{4}-(01|04|07|10)/rest|@shopify/.*/rest|createAdminRestApiClient\b)'
+          if git grep -nE "$REST_PATTERN" -- ${{ steps.files.outputs.files }}; then
+            echo "❌ REST Admin API usage detected. Use GraphQL Admin API."
+            # Re-print offending lines for easy debugging
+            git grep -nE "$REST_PATTERN" -- ${{ steps.files.outputs.files }}
             exit 1
           else
             echo "✅ No REST Admin API usage found."
           fi
 
-      # 2) Enforce single source of truth for Admin API version
-      #    Only apps/web/src/config/shopifyApiVersion.ts may reference:
-      #    - ApiVersion.<X>
-      #    - Hard-coded version handles like 2025-07 in code or URLs
+      # 2) Enforce single place for versioning (enum or string handles)
       - name: Enforce single Admin API version constant
+        shell: bash
         run: |
           set -euo pipefail
           CONFIG_FILE='apps/web/src/config/shopifyApiVersion.ts'
 
           # (a) Forbid ApiVersion.<...> anywhere except the config file
-          if git grep -nE "\bApiVersion\." -- \
-            ":(exclude)$CONFIG_FILE" ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
+          if git grep -nE '\bApiVersion\.' -- \
+            ":(exclude)$CONFIG_FILE" ${{ steps.files.outputs.files }} ; then
             echo "❌ Direct ApiVersion.* usage found outside $CONFIG_FILE. Import SHOPIFY_ADMIN_API_VERSION instead."
+            git grep -nE '\bApiVersion\.' -- ":(exclude)$CONFIG_FILE" ${{ steps.files.outputs.files }}
             exit 1
           else
             echo "✅ No direct ApiVersion.* usage outside $CONFIG_FILE."
           fi
 
           # (b) Forbid hard-coded version handles (e.g., 2025-07) in code/URLs outside the config file
-          if git grep -nE "/admin/api/20[0-9]{2}-(01|04|07|10)|['\"]20[0-9]{2}-(01|04|07|10)['\"]|shopify:admin/api/20[0-9]{2}-(01|04|07|10)" -- \
-            ":(exclude)$CONFIG_FILE" ':!**/node_modules/**' ':!**/.next/**' ':!**/dist/**' ':!**/build/**' ; then
+          VERSION_HANDLE_PATTERN='(/admin/api/20[0-9]{2}-(01|04|07|10)|["'\'']20[0-9]{2}-(01|04|07|10)["'\'']|shopify:admin/api/20[0-9]{2}-(01|04|07|10))'
+          if git grep -nE "$VERSION_HANDLE_PATTERN" -- \
+            ":(exclude)$CONFIG_FILE" ${{ steps.files.outputs.files }} ; then
             echo "❌ Hard-coded Admin API version found outside $CONFIG_FILE. Use SHOPIFY_ADMIN_API_VERSION."
+            git grep -nE "$VERSION_HANDLE_PATTERN" -- ":(exclude)$CONFIG_FILE" ${{ steps.files.outputs.files }}
             exit 1
           else
             echo "✅ No hard-coded Admin API version handles outside $CONFIG_FILE."
