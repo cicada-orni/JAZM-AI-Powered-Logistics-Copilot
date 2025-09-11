@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@jazm/db": "workspace:*",
+    "@shopify/admin-api-client": "^1.1.1",
     "@shopify/app-bridge": "^3.7.10",
     "@shopify/app-bridge-react": "^4.2.2",
     "@shopify/polaris": "^13.9.5",

@@ -1,0 +1,78 @@
+name: policy-graphql-only
+
+on:
+  pull_request:
+    paths:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.jsx'
+      - '.github/workflows/graphql-only.yml'
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) Block REST Admin API usage (source files only; print offending lines)
+      - name: Block REST Admin API usage
+        shell: bash
+        run: |
+          set -euo pipefail
+          REST_PATTERN='(/admin/api/[0-9]{4}-(01|04|07|10)/rest|shopify:admin/api/[0-9]{4}-(01|04|07|10)/rest|\bcreateAdminRestApiClient\b|\bAdminRest\b)'
+          if git grep -nE "$REST_PATTERN" -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' \
+            ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+            ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**' ; then
+            echo "❌ REST Admin API usage detected. Use GraphQL Admin API only."
+            git grep -nE "$REST_PATTERN" -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' \
+              ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+              ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**'
+            exit 1
+          else
+            echo "✅ No REST Admin API usage found."
+          fi
+
+      # 2) Enforce single place for Admin API version (enum or date handle)
+      - name: Enforce single Admin API version constant
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_FILE='apps/web/src/config/shopifyApiVersion.ts'
+
+          # (a) Forbid ApiVersion.* outside the config file
+          if git grep -nE '\bApiVersion\.' -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' \
+            ":(exclude)$CONFIG_FILE" \
+            ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+            ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**' ; then
+            echo "❌ Direct ApiVersion.* usage found outside $CONFIG_FILE. Import SHOPIFY_ADMIN_API_VERSION instead."
+            git grep -nE '\bApiVersion\.' -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' \
+              ":(exclude)$CONFIG_FILE" \
+              ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+              ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**'
+            exit 1
+          else
+            echo "✅ No direct ApiVersion.* usage outside $CONFIG_FILE."
+          fi
+
+          # (b) Forbid hard-coded date handles (e.g., 2025-07) outside the config file
+          VERSION_HANDLE_PATTERN='(/admin/api/20[0-9]{2}-(01|04|07|10)|["'\'']20[0-9]{2}-(01|04|07|10)["'\'']|shopify:admin/api/20[0-9]{2}-(01|04|07|10))'
+          if git grep -nE "$VERSION_HANDLE_PATTERN" -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' \
+            ":(exclude)$CONFIG_FILE" \
+            ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+            ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**' ; then
+            echo "❌ Hard-coded Admin API version found outside $CONFIG_FILE. Use SHOPIFY_ADMIN_API_VERSION."
+            git grep -nE "$VERSION_HANDLE_PATTERN" -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' \
+              ":(exclude)$CONFIG_FILE" \
+              ':(exclude)**/*.d.ts' ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' ':(exclude)**/*.stories.*' \
+              ':(exclude)**/node_modules/**' ':(exclude)**/.next/**' ':(exclude)**/dist/**' ':(exclude)**/build/**'
+            exit 1
+          else
+            echo "✅ No hard-coded Admin API version handles outside $CONFIG_FILE."
+          fi

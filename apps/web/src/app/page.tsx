@@ -1,7 +1,7 @@
 'use client'
 
 //  --- OFFLINE TOKEN EXCHANGE ---
-import { AuthInit } from '@/components/providers/AuthInit.client'
+import { AuthInit } from '@/components/auth/AuthInit.client'
 //  --- OFFLINE TOKEN EXCHANGE ---
 
 import PageTitleBar from '@/components/app/PageTitleBar'
