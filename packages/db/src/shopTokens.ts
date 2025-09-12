@@ -18,7 +18,7 @@ export async function upsertShopToken(params: {
   })
 }
 
-// to update the uninstalled value inside shops table
+// to update the uninstalled value inside shops tablee
 export async function markUninstalled(shopDomain: string) {
   await prisma.shops.update({
     where: {
