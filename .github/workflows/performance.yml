@@ -1,5 +1,6 @@
 # .github/workflows/performance.yml
 name: lhci
+
 on:
   pull_request:
   push:
@@ -8,10 +9,13 @@ on:
 jobs:
   lhci:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 30
 
-      # Install pnpm — DO NOT pass "version" if package.json has "packageManager"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install pnpm (reads version from package.json: "packageManager")
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -21,23 +25,32 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: Install deps
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Ensure Prisma client is generated for @jazm/db (custom output path)
+      - name: Generate Prisma client (@jazm/db)
+        run: pnpm -F @jazm/db run prisma:generate
+
+      - name: Verify generated Prisma client
+        run: test -d packages/db/src/generated/prisma
 
       - name: Build web
         run: pnpm -F @jazm/web build
 
-      # If you run LHCI against a local server, uncomment the two steps below:
-      # - name: Start web
-      #   run: pnpm -F @jazm/web start -- --port 3000 &
-      # - name: Wait for app
-      #   run: npx wait-on http://localhost:3000
+      - name: Start web (background)
+        env:
+          NEXT_PUBLIC_SHOPIFY_API_KEY: ci_test_key
+          NODE_ENV: production
+        run: pnpm -F @jazm/web start -- --port 3000 &
+
+      - name: Wait for web
+        run: npx --yes wait-on http://localhost:3000
 
       - name: Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          # Replace with your target URLs or lhci config.
           urls: |
-            https://example.com/
+            http://localhost:3000/
           uploadArtifacts: true
           temporaryPublicStorage: true
