@@ -1,0 +1,25 @@
+name: performance-ci
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'apps/web/lighthouserc.json'
+      - '.github/workflows/performance.yml'
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'pnpm' }
+      - run: corepack enable
+      - run: corepack prepare pnpm@9.12.3 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: './lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true

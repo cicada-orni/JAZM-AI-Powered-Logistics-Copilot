@@ -6,6 +6,7 @@ import '@shopify/polaris/build/esm/styles.css'
 import BulkSyncModal from '@/components/app/BulkSyncModal'
 import HostGuard from '@/components/app/HostGuard.client'
 import AppNavMenu from '@/components/app/AppNavMenu'
+import WebVitalsReporterAB from '@/components/providers/WebVitalsReporterAB.client'
 
 // METADATA
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body>
         <HostGuard />
         <AppNavMenu />
+        <WebVitalsReporterAB />
         <PolarisProvider>{children}</PolarisProvider>
         <BulkSyncModal />
       </body>
