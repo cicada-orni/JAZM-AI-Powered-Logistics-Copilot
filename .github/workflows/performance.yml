@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install pnpm (reads version from package.json: "packageManager")
+      # pnpm from package.json "packageManager"
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -28,19 +28,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Ensure Prisma client is generated for @jazm/db (custom output path)
+      # Prisma client for @jazm/db (custom output path)
       - name: Generate Prisma client (@jazm/db)
         run: pnpm -F @jazm/db run prisma:generate
 
       - name: Verify generated Prisma client
         run: test -d packages/db/src/generated/prisma
 
+      # ✅ Provide Shopify envs during build to prevent "Invalid URL"
       - name: Build web
+        env:
+          SHOPIFY_API_KEY: ci_dummy_key
+          SHOPIFY_API_SECRET: ci_dummy_secret
+          SHOPIFY_SCOPES: read_products
+          SHOPIFY_APP_URL: http://localhost:3000
+          NODE_ENV: production
         run: pnpm -F @jazm/web build
 
       - name: Start web (background)
         env:
-          NEXT_PUBLIC_SHOPIFY_API_KEY: ci_test_key
+          NEXT_PUBLIC_SHOPIFY_API_KEY: ci_dummy_key
+          SHOPIFY_API_KEY: ci_dummy_key
+          SHOPIFY_API_SECRET: ci_dummy_secret
+          SHOPIFY_SCOPES: read_products
+          SHOPIFY_APP_URL: http://localhost:3000
           NODE_ENV: production
         run: pnpm -F @jazm/web start -- --port 3000 &
 
