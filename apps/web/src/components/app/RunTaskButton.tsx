@@ -4,14 +4,15 @@ import { useAB } from '@/lib/useAB'
 
 type Props = {
   label: string
-  run: () => Promise<void>
+  // Next.js client components prefer function props named `action` or ending with `Action`.
+  runAction: () => Promise<void>
   success: string
   error?: string
 }
 
 export default function RunTaskButton({
   label,
-  run,
+  runAction,
   success,
   error = 'Something went wrong',
 }: Props) {
@@ -20,7 +21,7 @@ export default function RunTaskButton({
   async function onClick() {
     try {
       loading(true)
-      await run()
+      await runAction()
       toastSuccess(success)
     } catch {
       toastError(error)

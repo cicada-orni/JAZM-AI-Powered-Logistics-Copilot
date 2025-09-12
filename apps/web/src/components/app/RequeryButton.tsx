@@ -9,10 +9,12 @@ export default function RequeryButton() {
 
   return (
     <Button
-      onClick={withLoading(async () => {
-        await new Promise((r) => setTimeout(r, 700))
-        toastSuccess('Products refreshed')
-      })}
+      onClick={() =>
+        withLoading(async () => {
+          await new Promise((r) => setTimeout(r, 700))
+          toastSuccess('Products refreshed')
+        })
+      }
     >
       Refresh products
     </Button>

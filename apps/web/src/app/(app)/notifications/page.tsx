@@ -13,7 +13,6 @@ export default function NotificationsPage() {
     <>
       <PageTitleBar
         title="Notifications"
-        breadcrumbLabel="Dashboard"
         primaryAction={{
           label: 'Bulk sync',
           onClick: () => showModal(BULK_SYNC_MODAL_ID),

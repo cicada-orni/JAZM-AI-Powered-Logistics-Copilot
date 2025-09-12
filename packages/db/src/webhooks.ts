@@ -21,12 +21,20 @@ export async function recordWebhookOnce(params: {
       },
     })
     return true
-  } catch (error) {
-    if (
-      error.code === 'P2002' ||
-      String(error.message).includes('Unique constraint')
-    )
-      return false
+  } catch (error: unknown) {
+    // Handle Prisma unique constraint violation without loosening types
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (
+        error.code === 'P2002' ||
+        error.message.includes('Unique constraint')
+      ) {
+        return false
+      }
+    } else if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return false
+      }
+    }
     throw error
   }
 }

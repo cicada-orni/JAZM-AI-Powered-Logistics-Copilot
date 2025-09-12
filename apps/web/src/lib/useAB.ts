@@ -10,7 +10,7 @@ export function useAB() {
   }
 
   function toastError(message: string, ms = 5000) {
-    return shopify.toast.error(message, { duration: ms, isError: true })
+    return shopify.toast.show(message, { duration: ms, isError: true })
   }
 
   //   --- LOADING ---
@@ -32,7 +32,6 @@ export function useAB() {
     toastSuccess,
     toastError,
     loading,
-    showModal,
     showModal,
     hideModal,
   }
