@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const payload = JSON.parse(raw.toString('utf-8'))
 
-  const firstTime = recordWebhookOnce({
+  const firstTime = await recordWebhookOnce({
     id: webhook_id,
     topic,
     shopDomain: shop_domain,
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (firstTime) {
     if (topic === 'shop/redact') {
       // Mandatory: erase merchant data for this shop
-      await markShopRedacted(shop)
+      await markShopRedacted(shop_domain)
       // (Also: purge app-private data rows keyed by this shop if any)
     } else if (topic === 'customers/redact') {
       // Delete/erase customer-specific data (if we store any).

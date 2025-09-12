@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const payload = JSON.parse(raw.toString('utf-8'))
 
-  const firstTime = recordWebhookOnce({
+  const firstTime = await recordWebhookOnce({
     id: webhook_id,
     topic,
     shopDomain: shop_domain,

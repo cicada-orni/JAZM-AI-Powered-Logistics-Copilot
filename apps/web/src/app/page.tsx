@@ -36,7 +36,7 @@ export default function Dashboard() {
               <RunTaskButton
                 label="Recompute insights"
                 success="Insights recompute queued"
-                run={async () => {
+                runAction={async () => {
                   // Placeholder for a real API call
                   await new Promise((r) => setTimeout(r, 600))
                 }}
