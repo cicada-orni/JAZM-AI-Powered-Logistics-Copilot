@@ -1,0 +1,65 @@
+name: appbridge-guards
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/appbridge-guards.yml'
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ensure the shopify API key meta tag is present (v4 requirement)
+      - name: Require <meta name="shopify-api-key">
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git grep -nE 'meta[^>]+name=["'\'']shopify-api-key["'\'']' -- src/app/layout.tsx >/dev/null; then
+            echo "❌ Missing <meta name=\"shopify-api-key\"> in app layout. Required for App Bridge v4." && exit 1
+          fi
+          echo "✅ Found shopify-api-key meta."
+
+      # Ensure the CDN script for App Bridge is present in <head>
+      - name: Require app-bridge.js script tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git grep -nE 'script[^>]+shopifycloud/app-bridge\.js' -- src/app/layout.tsx >/dev/null; then
+            echo "❌ Missing App Bridge CDN script in <head>. Required for v4." && exit 1
+          fi
+          echo "✅ Found App Bridge CDN script."
+
+      # Disallow legacy Provider usage (removed in v4)
+      - name: Forbid legacy <Provider> usage from app-bridge-react
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '<\s*Provider\b' -- \
+            'src/**/*.ts' 'src/**/*.tsx' \
+            ':(exclude)**/*.test.*' ':(exclude)**/*.spec.*' >/dev/null; then
+            echo "❌ Legacy <Provider> detected. App Bridge React v4 is providerless." && exit 1
+          fi
+          echo "✅ No legacy Provider usage found."
+
+      # Require HostGuard wiring in layout (ensures host/shop propagation)
+      - name: Require HostGuard in root layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git grep -nE 'HostGuard' -- src/app/layout.tsx >/dev/null; then
+            echo "❌ HostGuard not found in root layout. Required to persist/restore host param." && exit 1
+          fi
+          echo "✅ HostGuard present in layout."
+
+      # Ensure NavMenu home semantics exist in source (not a DOM check)
+      - name: Require rel=\"home\" declaration for NavMenu first child
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git grep -nE 'rel=["'\'']home["'\'']' -- src/components/app/AppNavMenu.tsx >/dev/null; then
+            echo "❌ NavMenu home item (rel=\"home\") not declared in AppNavMenu.tsx." && exit 1
+          fi
+          echo "✅ NavMenu home semantics found."
