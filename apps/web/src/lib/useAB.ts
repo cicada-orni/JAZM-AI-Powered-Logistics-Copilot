@@ -27,6 +27,17 @@ export function useAB() {
     shopify.modal.hide(id)
   }
 
+  // Open a URL at the top-level (outside the iframe)
+  function navigateTo(url: string) {
+    window.open(url, '_top')
+  }
+
+  // Open a Shopify Admin path via the shopify://admin scheme
+  function openAdmin(path: string) {
+    const normalized = path.startsWith('/') ? path : `/${path}`
+    return navigateTo(`shopify://admin${normalized}`)
+  }
+
   return {
     shopify,
     toastSuccess,
@@ -34,5 +45,7 @@ export function useAB() {
     loading,
     showModal,
     hideModal,
+    navigateTo,
+    openAdmin,
   }
 }
