@@ -7,6 +7,7 @@ import BulkSyncModal from '@/components/app/BulkSyncModal'
 import HostGuard from '@/components/app/HostGuard.client'
 import AppNavMenu from '@/components/app/AppNavMenu'
 import WebVitalsReporterAB from '@/components/providers/WebVitalsReporterAB.client'
+import { Suspense } from 'react'
 
 // METADATA
 export const metadata: Metadata = {
@@ -29,8 +30,12 @@ export default function RootLayout({
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
-        <HostGuard />
-        <AppNavMenu />
+        <Suspense>
+          <HostGuard />
+        </Suspense>
+        <Suspense>
+          <AppNavMenu />
+        </Suspense>
         <WebVitalsReporterAB />
         <PolarisProvider>{children}</PolarisProvider>
         <BulkSyncModal />
