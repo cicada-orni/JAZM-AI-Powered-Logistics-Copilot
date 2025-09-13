@@ -7,9 +7,18 @@ import { AuthInit } from '@/components/auth/AuthInit.client'
 import PageTitleBar from '@/components/app/PageTitleBar'
 import RunTaskButton from '@/components/app/RunTaskButton'
 import BulkSyncModal from '@/components/app/BulkSyncModal'
-import { Card, Page, Text, BlockStack } from '@shopify/polaris'
+import {
+  Card,
+  Page,
+  Text,
+  BlockStack,
+  Button,
+  InlineStack,
+} from '@shopify/polaris'
+import { useAB } from '@/lib/useAB'
 
 export default function Dashboard() {
+  const { navigateTo, openAdmin } = useAB()
   return (
     <>
       {/* --- OFFLINE TOKEN EXCHANGE --- */}
@@ -41,6 +50,19 @@ export default function Dashboard() {
                   await new Promise((r) => setTimeout(r, 600))
                 }}
               />
+              <BlockStack>
+                <Text as="h3" variant="headingMd">
+                  Navigation Test
+                </Text>
+                <InlineStack gap="400">
+                  <Button onClick={() => navigateTo('https://google.com')}>
+                    Test External Link (Navigate To)
+                  </Button>
+                  <Button onClick={() => openAdmin('/products')}>
+                    Test Admin Link (openAdmin)
+                  </Button>
+                </InlineStack>
+              </BlockStack>
             </BlockStack>
           </Card>
         </BlockStack>

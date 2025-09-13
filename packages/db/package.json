@@ -13,7 +13,10 @@
     "db:apply": "prisma migrate deploy",
     "db:pull": "prisma db pull",
     "db:gen": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "prisma:generate": "prisma generate",
+    "postinstall": "pnpm run prisma:generate",
+    "prebuild": "pnpm run prisma:generate"
   },
   "devDependencies": {
     "prisma": "^6.15.0"

@@ -1,0 +1,88 @@
+# .github/workflows/performance.yml
+name: lhci
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/performance.yml'
+  workflow_dispatch: {}
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      APP_URL: 'http://localhost:3000/notifications?host=aHR0cHM6Ly9kZXYtbXlzaG9wLm15c2hvcGlmeS5jb20&shop=example-dev.myshopify.com'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ✅ Install pnpm (reads version from package.json "packageManager")
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Confirm pnpm installed
+        run: pnpm -v
+
+      - name: Install dependencies (workspace)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (@jazm/db)
+        run: pnpm -F @jazm/db run prisma:generate
+
+      - name: Verify generated Prisma client
+        run: test -d packages/db/src/generated/prisma
+
+      - name: Build @jazm/web
+        working-directory: apps/web
+        env:
+          NODE_ENV: production
+          SHOPIFY_APP_URL: 'http://localhost:3000'
+          SHOPIFY_API_KEY: 'ci_dummy_key'
+          SHOPIFY_API_SECRET: 'ci_dummy_secret'
+          SHOPIFY_SCOPES: 'read_products'
+          NEXT_PUBLIC_SHOPIFY_API_KEY: 'ci_dummy_key'
+        run: pnpm build
+
+      - name: Start Next server
+        working-directory: apps/web
+        env:
+          NODE_ENV: production
+        run: |
+          nohup pnpm start -p 3000 -H 127.0.0.1 > /tmp/next.log 2>&1 &
+          echo $! > /tmp/next.pid
+
+      # ✅ Wait for listening socket (HTTP 2xx is NOT required)
+      - name: Wait for port 3000
+        run: npx --yes wait-on tcp:3000 --timeout 90000
+
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        timeout-minutes: 8
+        with:
+          urls: |
+            ${{ env.APP_URL }}
+          # single run to keep PRs fast
+          configPath: ./.lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Print Next logs on failure
+        if: failure()
+        run: |
+          echo "==== /tmp/next.log ===="
+          [ -f /tmp/next.log ] && tail -n +1 /tmp/next.log || echo "No log file"
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/next.pid ]; then kill $(cat /tmp/next.pid) || true; fi

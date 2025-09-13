@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "shopify:dev": "shopify app dev --skip-dependencies-installation",
-    "shopify:reset": "shopify app dev --reset"
+    "shopify:reset": "shopify app dev --reset",
+    "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --reporter=github"
   },
   "dependencies": {
     "@jazm/db": "workspace:*",
@@ -24,6 +26,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@shopify/app-bridge-types": "^0.3.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

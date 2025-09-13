@@ -22,7 +22,7 @@ export default function PageTitleBar({
       ) : null}
 
       {secondaryActions.length > 0 ? (
-        <section aria-label="More actions">
+        <section label="More actions">
           {secondaryActions.map((a, i) => (
             <button key={i} onClick={a.onClick}>
               {a.label}
