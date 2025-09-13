@@ -1,67 +1,66 @@
-# .github/workflows/performance.yml
 name: lhci
-
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
   lhci:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # pnpm from package.json "packageManager"
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
+      - name: Setup Node 22 + pnpm
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
+      - name: Enable corepack & pin pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.12.3 --activate
 
-      - name: Install dependencies
+      - name: Install deps (workspace)
         run: pnpm install --frozen-lockfile
 
-      # Prisma client for @jazm/db (custom output path)
-      - name: Generate Prisma client (@jazm/db)
-        run: pnpm -F @jazm/db run prisma:generate
-
-      - name: Verify generated Prisma client
-        run: test -d packages/db/src/generated/prisma
-
-      # ✅ Provide Shopify envs during build to prevent "Invalid URL"
-      - name: Build web
+      # Build the app with dummy env so server-only code parses safely
+      - name: Build @jazm/web
+        working-directory: apps/web
         env:
-          SHOPIFY_API_KEY: ci_dummy_key
-          SHOPIFY_API_SECRET: ci_dummy_secret
-          SHOPIFY_SCOPES: read_products
-          SHOPIFY_APP_URL: http://localhost:3000
           NODE_ENV: production
-        run: pnpm -F @jazm/web build
+          SHOPIFY_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_SHOPIFY_API_KEY: test_key
+        run: pnpm build
 
-      - name: Start web (background)
+      - name: Start Next.js (port 3000)
+        working-directory: apps/web
         env:
-          NEXT_PUBLIC_SHOPIFY_API_KEY: ci_dummy_key
-          SHOPIFY_API_KEY: ci_dummy_key
-          SHOPIFY_API_SECRET: ci_dummy_secret
-          SHOPIFY_SCOPES: read_products
-          SHOPIFY_APP_URL: http://localhost:3000
-          NODE_ENV: production
-        run: pnpm -F @jazm/web start -- --port 3000 &
+          PORT: 3000
+        run: |
+          nohup pnpm start -- --port 3000 >/tmp/next.log 2>&1 & echo $! > /tmp/next.pid
 
-      - name: Wait for web
-        run: npx --yes wait-on http://localhost:3000
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 60000
 
-      - name: Lighthouse CI
+      - name: Lighthouse CI (single run, hardened Chrome)
         uses: treosh/lighthouse-ci-action@v12
+        timeout-minutes: 10
         with:
-          urls: |
-            http://localhost:3000/
+          configPath: apps/web/.lighthouserc.json
           uploadArtifacts: true
-          temporaryPublicStorage: true
+        env:
+          # Optional if you want a dedicated PR “Lighthouse CI” check:
+          # LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          # (Install/authorize the Lighthouse CI GitHub App, then add the token) :contentReference[oaicite:5]{index=5}
+          NODE_OPTIONS: --max_old_space_size=4096
+
+      - name: Print Next logs on failure
+        if: failure()
+        run: |
+          echo "---- NEXT LOGS ----"
+          tail -n +1 /tmp/next.log || true
+
+      - name: Stop Next
+        if: always()
+        run: |
+          kill $(cat /tmp/next.pid) 2>/dev/null || true
