@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   description: 'AI-Powered Logistics Copilot',
 }
 
+// LAYOUT
 export default function RootLayout({
   children,
 }: Readonly<{
