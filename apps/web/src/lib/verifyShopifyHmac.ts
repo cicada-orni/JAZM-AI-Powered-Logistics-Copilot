@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 
 /**
- * Verifies Shopify webhook HMAC.
+ * Verifies Shopify webhook HMAC signature.
  * @param secret APP client secret (SHOPIFY_API_SECRET)
  * @param rawBody Raw request body as Buffer (not parsed JSON!)
  * @param headerHmac  Base64 from `X-Shopify-Hmac-Sha256`

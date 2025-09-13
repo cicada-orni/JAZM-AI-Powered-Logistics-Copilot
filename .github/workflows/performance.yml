@@ -86,3 +86,12 @@ jobs:
         if: always()
         run: |
           if [ -f /tmp/next.pid ]; then kill $(cat /tmp/next.pid) || true; fi
+
+#           Patterns to Follow for the Future
+# Prerequisites First: Always ensure any necessary prerequisites (like generating a client) are run before the steps that depend on them (like building the app).
+
+# Explicit Tool Setup: Don't assume tools are pre-installed. Use official GitHub Actions (like pnpm/action-setup) to create a predictable environment.
+
+# Robust Readiness Checks: When testing an app that needs a server, always wait for a tcp port, not an http URL. This makes your tests far more stable.
+
+# Debuggability: Always include steps to print logs (if: failure()) and perform cleanup (if: always()). This will save you hours of frustration when tests inevitably fail in the future.
