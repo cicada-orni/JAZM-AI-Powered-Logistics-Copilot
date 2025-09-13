@@ -13,7 +13,7 @@ Status: Accepted
 ## Decision
 
 1. **GraphQL-only** for all Admin operations. No REST usage in new code.
-2. A single constant `SHOPIFY_ADMIN_API_VERSION` (initially `2025-07`) is the only place the version string may appear.
+2. A single constant `SHOPIFY_ADMIN_API_VERSION` (initially `2025-07`) is the only place the version string appear.
 3. All Admin GraphQL calls must use the official client initialized with domain + version + token.
 4. CI enforces:
    - No REST Admin API references.
