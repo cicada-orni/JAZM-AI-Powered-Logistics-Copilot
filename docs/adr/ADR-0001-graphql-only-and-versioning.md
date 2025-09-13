@@ -21,7 +21,7 @@ Status: Accepted
 
 ## Consequences
 
-- Reduced breakage across releases; clear quarterly upgrade motion.
+- Reduced breakage releases; clear quarterly upgrade motion.
 - Faster access to new features (GraphQL-first).
 - Easier auditing of API usage and costs (GraphQL `extensions.cost`).
 
