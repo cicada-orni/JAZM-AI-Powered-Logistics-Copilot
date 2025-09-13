@@ -10,6 +10,8 @@ env:
   BASE_URL: http://127.0.0.1:3000
   HOST_B64: aHR0cHM6Ly9kZXYtbXlzaG9wLm15c2hvcGlmeS5jb20
   SHOP: example-dev.myshopify.com
+  SHOPIFY_APP_URL: http://127.0.0.1:3000
+  NEXT_PUBLIC_SHOPIFY_API_KEY: test_key
 
 jobs:
   lhci-nightly:
