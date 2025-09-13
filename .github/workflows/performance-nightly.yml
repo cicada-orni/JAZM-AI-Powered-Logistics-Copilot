@@ -1,28 +1,29 @@
+# .github/workflows/performance-nightly.yml
 name: Performance (Nightly)
 
 on:
   schedule:
-    - cron: '0 2 * * *' # 02:00 UTC nightly
+    - cron: '0 2 * * *' # 02:00 UTC daily
   workflow_dispatch:
 
 env:
-  NEXT_TELEMETRY_DISABLED: 1
+  # Base URL the server will bind to for Lighthouse
   BASE_URL: http://127.0.0.1:3000
+  # Shopify host/shop test params for embedded routes
   HOST_B64: aHR0cHM6Ly9kZXYtbXlzaG9wLm15c2hvcGlmeS5jb20
   SHOP: example-dev.myshopify.com
-  SHOPIFY_APP_URL: http://127.0.0.1:3000
-  NEXT_PUBLIC_SHOPIFY_API_KEY: test_key
 
 jobs:
   lhci-nightly:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm (reads version from packageManager)
+      # Install pnpm (reads version from packageManager if present)
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
       - name: Setup Node
@@ -37,22 +38,32 @@ jobs:
       - name: Generate Prisma client
         run: pnpm -F @jazm/db run prisma:generate
 
+      # --- Build the Next.js app (monorepo app at apps/web) ---
       - name: Build Web (Next.js)
         working-directory: apps/web
+        env:
+          # Minimal env so /api/auth/* can initialize during build
+          SHOPIFY_API_KEY: test_key
+          SHOPIFY_API_SECRET: test_secret
+          NEXT_PUBLIC_SHOPIFY_API_KEY: test_key
+          SHOPIFY_APP_URL: http://127.0.0.1:3000
+          SHOPIFY_SCOPES: read_products,write_products
         run: pnpm build
 
+      # --- Start server in background and capture logs/PID ---
       - name: Start Web (background)
         working-directory: apps/web
         run: |
           nohup pnpm start -p 3000 -H 127.0.0.1 > /tmp/next.log 2>&1 &
           echo $! > /tmp/next.pid
 
+      # Probe the TCP port (don’t require a 2xx HTTP yet)
       - name: Wait for port
-        run: npx --yes wait-on tcp:3000 --timeout 120000
-        # tcp wait avoids coupling readiness to a 2xx HTTP response. :contentReference[oaicite:4]{index=4}
+        run: npx --yes wait-on tcp:3000 --timeout 180000
 
-      - name: Lighthouse CI (nightly config, multiple routes)
-        uses: treosh/lighthouse-ci-action@v11
+      # --- Lighthouse CI (nightly config, multiple routes) ---
+      - name: Lighthouse CI (nightly)
+        uses: treosh/lighthouse-ci-action@v12
         with:
           configPath: ./.lighthouserc.nightly.json
           runs: 1
@@ -61,12 +72,14 @@ jobs:
             ${{ env.BASE_URL }}/analytics?host=${{ env.HOST_B64 }}&shop=${{ env.SHOP }}
             ${{ env.BASE_URL }}/notifications?host=${{ env.HOST_B64 }}&shop=${{ env.SHOP }}
 
+      # If something fails, print the server log to help debug quickly
       - name: Print Next.js log (if failed)
         if: failure()
         run: |
           echo "==== /tmp/next.log ===="
-          [ -f /tmp/next.log ] && tail -n +200 /tmp/next.log || echo "No log file"
+          [ -f /tmp/next.log ] && tail -n +1 /tmp/next.log || echo "No log file"
 
+      # Always stop the background server
       - name: Stop server
         if: always()
         run: |
