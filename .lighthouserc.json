@@ -2,21 +2,24 @@
   "ci": {
     "collect": {
       "numberOfRuns": 1,
+      "url": [
+        "http://127.0.0.1:3000/?host=aHR0cHM6Ly9kZXYtbXlzaG9wLm15c2hvcGlmeS5jb20&shop=example-dev.myshopify.com"
+      ],
       "settings": {
-        "chromeFlags": "--no-sandbox --disable-dev-shm-usage",
-        "formFactor": "desktop",
-        "screenEmulation": { "disabled": true }
+        "preset": "desktop"
       }
     },
     "assert": {
-      "preset": "lighthouse:no-pwa",
+      "preset": null,
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.7 }],
-        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
-        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
-        "total-blocking-time": ["warn", { "maxNumericValue": 300 }]
+        "categories:performance": ["error", { "minScore": 0.8 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 3000 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "interaction-to-next-paint": ["error", { "maxNumericValue": 200 }]
       }
     },
-    "upload": { "target": "temporary-public-storage" }
+    "upload": {
+      "target": "temporary-public-storage"
+    }
   }
 }
