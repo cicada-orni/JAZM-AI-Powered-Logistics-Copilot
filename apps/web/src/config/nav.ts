@@ -1,3 +1,4 @@
+// navbar routes
 export const ROUTES = {
   home: { label: 'JAZM', path: '/' },
   dashboard: { label: 'Dashboard', path: '/' },
