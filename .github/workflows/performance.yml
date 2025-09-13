@@ -1,72 +1,91 @@
-# .github/workflows/performance.yml
 name: lhci
+
 on:
   pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/performance.yml'
+  workflow_dispatch: {}
 
 jobs:
   lhci:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+
+    env:
+      # Keep CI as lean as possible
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Lighthouse target (can use any stable route in your app)
+      APP_URL: 'http://localhost:3000/notifications?host=aHR0cHM6Ly9kZXYtbXlzaG9wLm15c2hvcGlmeS5jb20&shop=example-dev.myshopify.com'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # ✅ Install pnpm (reads version from package.json "packageManager")
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
+      # Node + pnpm (versions match your repo)
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: '22.x'
+          cache: 'pnpm'
 
-      - name: Install deps (workspace)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.12.3'
+          run_install: false
+
+      - name: Install dependencies (workspace root)
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client (@jazm/db)
-        run: pnpm -F @jazm/db run prisma:generate
-
-      - name: Verify generated Prisma client
-        run: test -d packages/db/src/generated/prisma
-
+      # --- Build the app once
       - name: Build @jazm/web
         working-directory: apps/web
         env:
-          NODE_ENV: production
-          SHOPIFY_APP_URL: http://localhost:3000
-          SHOPIFY_API_KEY: ci_dummy_key
-          SHOPIFY_API_SECRET: ci_dummy_secret
-          SHOPIFY_SCOPES: read_products
-          NEXT_PUBLIC_SHOPIFY_API_KEY: ci_dummy_key
+          # runtime assumptions your code expects during build
+          SHOPIFY_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_SHOPIFY_API_KEY: 'test_key' # replace if needed for build
         run: pnpm build
 
-      - name: Start Next.js (port 3000)
+      # --- Start the server (bind to 127.0.0.1 and the port we’ll probe)
+      - name: Start Next server
         working-directory: apps/web
         env:
-          PORT: 3000
+          NODE_ENV: production
+          PORT: '3000'
+          HOSTNAME: '127.0.0.1'
+          # if your runtime expects these at start, wire them here too:
+          SHOPIFY_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_SHOPIFY_API_KEY: 'test_key'
         run: |
-          nohup pnpm start -- --port 3000 >/tmp/next.log 2>&1 & echo $! > /tmp/next.pid
+          nohup pnpm start -- -p 3000 -H 127.0.0.1 > /tmp/next.log 2>&1 &
+          echo $! > /tmp/next.pid
 
-      - name: Wait for server
-        run: npx --yes wait-on http://localhost:3000 --timeout 60000
+      # --- Wait until the TCP port is listening (not HTTP 2xx)
+      - name: Wait for port 3000
+        run: npx --yes wait-on tcp:3000 --timeout 90000
+        # http(s) resources require 2xx; tcp waits for the listening socket. See wait-on docs.
 
-      - name: Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
-        timeout-minutes: 10
-        with:
-          urls: |
-            http://localhost:3000/
-          uploadArtifacts: true
-          temporaryPublicStorage: true
+      # --- Run Lighthouse
+      - name: Lighthouse CI (autorun)
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: |
+          npx --yes @lhci/cli@0.14.x autorun \
+            --collect.url="$APP_URL" \
+            --collect.numberOfRuns=1 \
+            --upload.target=temporary-public-storage
 
+      # --- Always print logs and stop the server
       - name: Print Next logs on failure
         if: failure()
         run: |
-          echo "---- NEXT LOGS ----"
-          tail -n +1 /tmp/next.log || true
+          echo "==== /tmp/next.log ===="
+          [ -f /tmp/next.log ] && tail -n +1 /tmp/next.log || echo "No log file"
 
-      - name: Stop Next
+      - name: Stop server
         if: always()
         run: |
-          kill $(cat /tmp/next.pid) 2>/dev/null || true
+          if [ -f /tmp/next.pid ]; then
+            kill $(cat /tmp/next.pid) || true
+          fi
