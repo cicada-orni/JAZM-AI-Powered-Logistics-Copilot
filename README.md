@@ -66,11 +66,11 @@ Enterprise-grade Shopify app built with Next.js 15 (App Router), Polaris, and Ap
 
 ## End‑to‑End OAuth Flow
 
-1) App Bridge renders inside Shopify Admin and the client obtains a session token.
+1. App Bridge renders inside Shopify Admin and the client obtains a session token.
    - `apps/web/src/components/auth/AuthInit.client.tsx` calls `shopify.idToken()` then POSTs to `/api/auth/exchange`.
-2) Server exchanges the session token for an offline token and persists it.
+2. Server exchanges the session token for an offline token and persists it.
    - `apps/web/src/app/api/auth/exchange/route.ts` decodes and exchanges the token using `shopifyApi`, then calls `@jazm/db/shopTokens.upsertShopToken`.
-3) Durable tokens live in Postgres (`shops` table). Uninstalls are tracked via webhook.
+3. Durable tokens live in Postgres (`shops` table). Uninstalls are tracked via webhook.
    - `apps/web/src/app/api/webhooks/app-uninstalled/route.ts` verifies HMAC, dedupes with `recordWebhookOnce`, then calls `markUninstalled`.
 
 ## Webhooks
@@ -253,4 +253,3 @@ DB package:
 ---
 
 Maintained by the JAZM team.
-

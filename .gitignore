@@ -39,3 +39,12 @@ yarn-error.log*
 *.pem
 
 /generated/prisma
+
+# Local RAG index and private notes
+docs/rag/*
+docs/rag/.index/
+.rag-local/
+AGENTS.md
+
+# Weekly planning docs (user-local; do not commit)
+weekly/
