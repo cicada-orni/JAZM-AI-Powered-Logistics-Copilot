@@ -1,4 +1,5 @@
 import { getAdminGraphQLClient } from '@/lib/admin-graphql'
+import { coerceGraphQLResponse } from './pagination'
 
 type AccessScope = { handle: string }
 
@@ -18,12 +19,9 @@ export async function getGrantedAccessScopes(
   shopDomain: string
 ): Promise<string[]> {
   const client = await getAdminGraphQLClient(shopDomain)
-  const respUnknown: unknown = await client.request(ACCESS_SCOPES_QUERY, {})
+  const { data } = coerceGraphQLResponse<CurrentAppInstallationQuery>(
+    await client.request(ACCESS_SCOPES_QUERY, {})
+  )
 
-  if (respUnknown && typeof respUnknown === 'object' && 'data' in respUnknown) {
-    const data = (respUnknown as { data: CurrentAppInstallationQuery }).data
-    return data.currentAppInstallation?.accessScopes?.map((s) => s.handle) ?? []
-  }
-
-  throw new Error('Invalid GraphQL response shape in accessScopes check')
+  return data.currentAppInstallation?.accessScopes?.map((s) => s.handle) ?? []
 }

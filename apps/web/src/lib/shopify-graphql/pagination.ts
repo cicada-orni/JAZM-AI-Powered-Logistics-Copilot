@@ -28,6 +28,77 @@ export type GraphQLResponse<TData> = {
   extensions?: GraphQLExtensions
 }
 
+type GraphQLClientError = {
+  message?: string
+}
+
+type GraphQLResponseErrors = {
+  message?: string
+  graphQLErrors?: GraphQLClientError[]
+  networkStatusCode?: number
+}
+
+type ShopifyGraphQLClientResponse<TData> = {
+  data?: TData
+  extensions?: GraphQLExtensions
+  errors?: GraphQLResponseErrors
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function getGraphQLErrorMessage(input: unknown): string | undefined {
+  if (!Array.isArray(input)) return undefined
+  for (const err of input) {
+    if (
+      isObject(err) &&
+      typeof err.message === 'string' &&
+      err.message.trim()
+    ) {
+      return err.message
+    }
+  }
+  return undefined
+}
+
+function formatGraphQLError(errors: GraphQLResponseErrors): string {
+  const parts: string[] = []
+  if (errors.message) parts.push(errors.message)
+  const firstGraphQLError = getGraphQLErrorMessage(errors.graphQLErrors)
+  if (firstGraphQLError) parts.push(firstGraphQLError)
+  if (!parts.length && errors.networkStatusCode) {
+    parts.push(`Shopify Admin API error (status ${errors.networkStatusCode})`)
+  }
+  if (!parts.length) {
+    parts.push('Shopify Admin API error')
+  }
+  return parts.join(': ')
+}
+
+export function coerceGraphQLResponse<TData>(
+  payload: unknown
+): GraphQLResponse<TData> {
+  if (!isObject(payload)) {
+    throw new Error('Invalid GraphQL response shape')
+  }
+
+  const candidate = payload as ShopifyGraphQLClientResponse<TData>
+
+  if (candidate.errors) {
+    throw new Error(formatGraphQLError(candidate.errors))
+  }
+
+  if (candidate.data === undefined || candidate.data === null) {
+    throw new Error('GraphQL response missing data')
+  }
+
+  return {
+    data: candidate.data,
+    extensions: candidate.extensions,
+  }
+}
+
 export type IterateOptions = {
   pageSize?: number // default 100
   maxPages?: number // default 50
@@ -78,16 +149,8 @@ async function requestPage<TData>(
 ): Promise<GraphQLResponse<TData>> {
   const client = await getAdminGraphQLClient(shopDomain)
   // @shopify/admin-api-client .request returns { data, extensions, errors? }
-  const respUnknown: unknown = await client.request(query, variables)
-  // Narrow unknown into the expected GraphQLResponse shape
-  if (
-    respUnknown &&
-    typeof respUnknown === 'object' &&
-    'data' in respUnknown
-  ) {
-    return respUnknown as GraphQLResponse<TData>
-  }
-  throw new Error('Invalid GraphQL response shape')
+  const respUnknown: unknown = await client.request(query, { variables })
+  return coerceGraphQLResponse<TData>(respUnknown)
 }
 
 export async function* iterateConnection<TNode, TData>(

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "shopify:dev": "shopify app dev --skip-dependencies-installation",
+    "shopify:build": "shopify app build --skip-dependencies-installation",
     "shopify:reset": "shopify app dev --reset",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=github"

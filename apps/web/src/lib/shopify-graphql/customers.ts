@@ -1,13 +1,8 @@
 import { iterateConnection, type ConnectionLike, type IterateOptions } from './pagination'
 
-export type EmailAddress = { emailAddress?: string | null }
-export type PhoneNumber = { phoneNumber?: string | null }
-
 export type CustomerNode = {
   id: string
   displayName?: string | null
-  defaultEmailAddress?: EmailAddress | null
-  defaultPhoneNumber?: PhoneNumber | null
 }
 
 export type CustomersConnection = ConnectionLike<CustomerNode>
@@ -19,8 +14,6 @@ const CUSTOMERS_PAGE_QUERY = `#graphql
         node {
           id
           displayName
-          defaultEmailAddress { emailAddress }
-          defaultPhoneNumber { phoneNumber }
         }
       }
       pageInfo { hasNextPage endCursor }
