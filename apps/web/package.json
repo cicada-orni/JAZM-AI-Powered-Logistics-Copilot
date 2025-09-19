@@ -11,7 +11,9 @@
     "shopify:build": "shopify app build --skip-dependencies-installation",
     "shopify:reset": "shopify app dev --reset",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --reporter=github"
+    "test:e2e:ci": "playwright test --reporter=github",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:unit:watch": "vitest --watch --config vitest.config.ts"
   },
   "dependencies": {
     "@jazm/db": "workspace:*",
@@ -35,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-c8": "^0.33.0",
+    "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",

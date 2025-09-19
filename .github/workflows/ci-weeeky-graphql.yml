@@ -1,0 +1,33 @@
+name: ci-weekly-graphql
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'weekly/week-04/**'
+      - 'docs/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint web
+        run: pnpm --filter @jazm/web lint
+      - name: Build web
+        run: pnpm --filter @jazm/web build
+      - name: Unit tests (Vitest)
+        run: pnpm --filter @jazm/web test:unit

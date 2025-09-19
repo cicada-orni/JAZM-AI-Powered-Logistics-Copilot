@@ -40,7 +40,7 @@ function toLower(value?: string) {
 
 function matchPattern(message: string, patterns: string[]) {
   const lower = toLower(message)
-  return patterns.some((pattern) => lower.includes(pattern))
+  return patterns.some((pattern) => lower.includes(toLower(pattern)))
 }
 
 export function classifyGraphQLError(errors: ShopifyGraphQLResponseErrors): {
