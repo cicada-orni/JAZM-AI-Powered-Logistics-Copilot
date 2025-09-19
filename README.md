@@ -1,255 +1,150 @@
 <div align="center">
 
-# JAZM Monorepo — Shopify Embedded App (AI Logistics Copilot)
+# JAZM Monorepo — Shopify AI Logistics Copilot
 
-Enterprise-grade Shopify app built with Next.js 15 (App Router), Polaris, and App Bridge in a Turborepo workspace. Implements OAuth session token exchange, app-level webhooks, and a Prisma‑backed Postgres store for durable offline tokens.
+Production-ready Shopify embedded app built with Next.js 15, React 19, App Bridge, and Polaris inside a Turborepo workspace. Week 4 is complete: GraphQL-only foundation, cost-aware pagination, bulk operations scaffolding, protected customer data handling, and automated lint/build/unit-test CI.
 
 </div>
 
-## Highlights
+---
 
-- Next.js 15 + React 19 (App Router, Turbopack)
-- Shopify App Bridge + Polaris UI
-- Session token → Offline token exchange (server-side)
-- App-level webhooks (app/uninstalled) with dedupe + DB updates
-- Prisma + PostgreSQL (shops + webhook deliveries)
-- Turborepo + PNPM workspaces
-- Strict CSP for embedded runtime (per‑shop via middleware)
-- CI: GraphQL‑only policy, Lighthouse CI on PRs + nightly
+## At a Glance
+
+- **Frameworks:** Next.js 15 (App Router), React 19, TypeScript strict mode
+- **Shopify stack:** App Bridge v4, Polaris 13, Admin GraphQL (2025-07), OAuth session → offline exchange
+- **Data layer:** Prisma + Postgres (offline tokens & webhook dedupe)
+- **GraphQL helpers:** typed admin client, relay paginator with throttle backoff, bulk operation runner, error classifiers
+- **Dev tooling:** Turborepo + PNPM 9, Vitest unit harness, Playwright examples, GitHub Actions CI
 
 ---
 
-## Monorepo Structure
+## Repository Layout
 
-```
-.
+`.
 ├─ apps/
-│  └─ web/                      # Embedded Shopify Admin app (Next.js)
-│     ├─ next.config.ts         # Transpiles @jazm/db; base CSP header
-│     ├─ middleware.ts          # Per‑shop CSP: frame‑ancestors shop + admin
-│     ├─ shopify.app.toml       # App metadata, scopes, webhooks, URLs
+│  └─ web/                       # Embedded Shopify Admin app (Next.js)
+│     ├─ next.config.ts          # Transpiles @jazm/db; sets base CSP
+│     ├─ middleware.ts           # Per-shop CSP (frame-ancestors)
+│     ├─ shopify.app.toml        # App metadata, scopes, webhooks
 │     ├─ src/
 │     │  ├─ app/
-│     │  │  ├─ page.tsx         # Dashboard
-│     │  │  └─ api/
-│     │  │     ├─ auth/exchange/route.ts            # Session→offline exchange
-│     │  │     └─ webhooks/app-uninstalled/route.ts  # Mark shop uninstalled
-│     │  ├─ components/
-│     │  │  ├─ app/PageTitleBar.tsx                 # App Bridge TitleBar
-│     │  │  └─ providers/WebVitalsReporterAB.client.tsx  # AB web vitals hook
+│     │  │  ├─ api/
+│     │  │  │  ├─ auth/exchange/route.ts           # Session → offline exchange
+│     │  │  │  ├─ dev/graphql-probe/route.ts       # Dev-only scopes + sample data
+│     │  │  │  └─ webhooks/app-uninstalled/route.ts
+│     │  │  └─ page.tsx                            # Dashboard placeholder
+│     │  ├─ components/...
 │     │  └─ lib/
-│     │     ├─ shopify.ts                           # shopifyApi() client
-│     │     ├─ verifyShopifyHmac.ts                 # HMAC verification
-│     │     ├─ admin-graphql.ts                     # Admin GraphQL client
-│     │     └─ host.ts + HostGuard.client.tsx       # Persist/append host/shop
-│     └─ playwright.config.ts + e2e/                # Optional e2e harness
+│     │     ├─ admin-graphql.ts                    # createAdminApiClient wrapper
+│     │     ├─ shopify-graphql/
+│     │     │  ├─ pagination.ts                    # iterateConnection + backoff
+│     │     │  ├─ orders.ts / customers.ts / products.ts
+│     │     │  ├─ bulk.ts                          # startBulkQuery / pollCurrentBulk
+│     │     │  ├─ errors.ts                        # classifyGraphQLError helpers
+│     │     │  └─ __tests__/… (Vitest specs)
+│     │     ├─ host.ts / HostGuard.client.tsx      # Persist host/shop query params
+│     │     └─ verifyShopifyHmac.ts                # Webhook signature guard
+│     ├─ vitest.config.ts                          # Vitest config (Node + coverage)
+│     └─ tests-examples/, e2e/                     # Playwright samples (excluded from Vitest)
 ├─ packages/
-│  └─ db/                       # Prisma client + helpers
-│     ├─ prisma/
-│     │  └─ schema.prisma       # shops, webhook_deliveries
+│  └─ db/                         # Prisma client + helpers
+│     ├─ prisma/schema.prisma
 │     └─ src/
-│        ├─ client.ts           # PrismaClient singleton
-│        ├─ shopTokens.ts       # upsertShopToken, markUninstalled
-│        ├─ webhooks.ts         # recordWebhookOnce (dedupe)
-│       └─ getUniqueShop.ts    # getShopByDomain/requireActiveShop
-├─ .github/workflows/
-│  ├─ graphql-only.yml          # Guard against REST; enforce version const
-│  ├─ performance.yml           # PR Lighthouse CI
-│  └─ performance-nightly.yml   # Nightly multi‑route Lighthouse CI
-├─ .lighthouserc.json           # PR LHCI thresholds (desktop preset)
-├─ .lighthouserc.nightly.json   # Nightly LHCI thresholds (stricter)
+│        ├─ client.ts             # PrismaClient singleton
+│        ├─ shopTokens.ts         # upsertShopToken, markUninstalled
+│        └─ webhooks.ts           # recordWebhookOnce dedupe
 ├─ docs/
-│  ├─ adr/ADR-0001-graphql-only-and-versioning.md
-│  └─ navigation/top-level-policy.md
-└─ turbo.json, pnpm-workspace.yaml, package.json
-```
+│  └─ rag/plan/week_04_guidlines.md, knowledge/…
+├─ weekly/week-04/implementation/day-1.md … day-7.md
+├─ .github/workflows/
+│  ├─ graphql-only.yml            # Guard: no REST Admin, single version constant
+│  └─ ci-weekly-graphql.yml       # Lint + build + unit tests on PRs (Week 4 close)
+└─ package.json, pnpm-workspace.yaml, turbo.json`
 
-## End‑to‑End OAuth Flow
+---
 
-1. App Bridge renders inside Shopify Admin and the client obtains a session token.
-   - `apps/web/src/components/auth/AuthInit.client.tsx` calls `shopify.idToken()` then POSTs to `/api/auth/exchange`.
-2. Server exchanges the session token for an offline token and persists it.
-   - `apps/web/src/app/api/auth/exchange/route.ts` decodes and exchanges the token using `shopifyApi`, then calls `@jazm/db/shopTokens.upsertShopToken`.
-3. Durable tokens live in Postgres (`shops` table). Uninstalls are tracked via webhook.
-   - `apps/web/src/app/api/webhooks/app-uninstalled/route.ts` verifies HMAC, dedupes with `recordWebhookOnce`, then calls `markUninstalled`.
+## Week 4 Deliverables
 
-## Webhooks
+| Area             | Outcome                                                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GraphQL client   | getAdminGraphQLClient centralizes createAdminApiClient with ApiVersion.July25.                                                                                                    |
+| Pagination       | iterateConnection enforces ≤ 250 nodes, reads extensions.cost.throttleStatus, applies jittered backoff, and exposes onPage telemetry.                                             |
+| Resource readers | orders.ts, customers.ts, products.ts compose the iterator with minimal field selections.                                                                                          |
+| Bulk operations  | startBulkQuery / pollCurrentBulk provide typed wrappers around Shopify bulk queries.                                                                                              |
+| Error handling   | classifyGraphQLError, createShopifyGraphQLRequestError, isShopifyGraphQLRequestError, and coerceGraphQLResponse surface PCD/missing scope/throttle errors with remediation links. |
+| Dev probe        | /api/dev/graphql-probe (guarded) returns granted scopes & first-page counts; degrades gracefully when PCD approval is missing.                                                    |
+| Testing          | Vitest harness (pnpm --filter @jazm/web test:unit) covers error classifiers & response coercion; coverage stored in pps/web/coverage/unit/.                                       |
+| CI               | .github/workflows/ci-weekly-graphql.yml runs lint/build/unit tests on relevant PRs.                                                                                               |
 
-- `app/uninstalled`: configured in `apps/web/shopify.app.toml` → handled by `apps/web/src/app/api/webhooks/app-uninstalled/route.ts`.
-- GDPR topics (`customers/data_request`, `customers/redact`, `shop/redact`) are declared; create `apps/web/src/app/api/webhooks/gdpr/route.ts` to process them.
-- HMAC verification: `apps/web/src/lib/verifyShopifyHmac.ts`.
-- Delivery dedupe: `packages/db/src/webhooks.ts#recordWebhookOnce` returns false for duplicate IDs.
+See weekly/week-04/implementation/README.md for the day-by-day log and Week 5 launchpad.
 
-## Database (Prisma + Postgres)
+---
 
-- Schema: `packages/db/prisma/schema.prisma`
+## Shopify OAuth & Webhooks
 
-  ```prisma
-  model shops {
-    shop_domain          String    @id
-    offline_access_token String
-    installed_at         DateTime  @default(now()) @db.Timestamptz(6)
-    uninstalled          Boolean   @default(false)
-    redacted_at          DateTime? @db.Timestamptz(6)
-  }
+1. **Embedded runtime** – AuthInit.client.tsx requests a session token via App Bridge and POSTs it to /api/auth/exchange.
+2. **Session exchange** – pi/auth/exchange/route.ts verifies the token, exchanges for a durable offline token using shopifyApi, and persists it with Prisma.
+3. **Durability** – offline tokens live in shops table. The pp/uninstalled webhook (verified by erifyShopifyHmac.ts and deduped via
+   ecordWebhookOnce) marks shops uninstalled to prevent stale credentials.
+4. **Protected data** – runtime scopes are checked via getGrantedAccessScopes. The dev probe (and future UI) alert when Protected Customer Data approval is missing.
 
-  model webhook_deliveries {
-    webhook_id   String    @id
-    topic        String
-    shop_domain  String
-    triggered_at DateTime? @db.Timestamptz(6)
-    received_at  DateTime  @default(now()) @db.Timestamptz(6)
-    payload      Json
-  }
-  ```
+---
 
-- Generated client output: `packages/db/src/generated/prisma`.
-- Helpers: `shopTokens.ts`, `webhooks.ts`, `getUniqueShop.ts`.
+## Environment Setup
 
-## CI/CD
+Create pps/web/.env.local:
 
-- GraphQL‑only policy: `.github/workflows/graphql-only.yml`
-  - Blocks REST Admin API usage in source files.
-  - Enforces a single Admin API version constant `SHOPIFY_ADMIN_API_VERSION` in `apps/web/src/config/shopifyApiVersion.ts`.
-
-- Performance on PRs: `.github/workflows/performance.yml`
-  - Builds `@jazm/web`, starts the server, waits for port 3000, then runs Lighthouse CI using `.lighthouserc.json`.
-  - Uploads results to temporary public storage and attaches artifacts.
-
-- Nightly performance: `.github/workflows/performance-nightly.yml`
-  - Nightly cron + manual dispatch. Tests multiple embedded routes with `.lighthouserc.nightly.json` (stricter thresholds).
-
-## Lighthouse Configuration
-
-- `.lighthouserc.json`: desktop preset, asserts performance category ≥ 0.8, LCP ≤ 3s, CLS ≤ 0.1, INP ≤ 200ms.
-- `.lighthouserc.nightly.json`: tightened thresholds (performance ≥ 0.9, LCP ≤ 2.5s).
-
-## App Bridge & UI
-
-- Hook: `useAB` wraps common App Bridge calls (toast.show, loading, modal.show/hide).
-- Title bar: `PageTitleBar` composes App Bridge `<TitleBar>` with actions (uses App‑Bridge‑types JSX augmentation for button variants and breadcrumbs).
-- Host guard: `HostGuard.client.tsx` ensures `host`/`shop` query params persist across navigation and stores them in `sessionStorage` via `lib/host.ts`.
-- Web Vitals: `WebVitalsReporterAB.client.tsx` listens to App Bridge `webVitals.onReport` in development.
-
-## Environment Configuration
-
-Create `apps/web/.env.local` with Shopify and database settings. Example:
-
-```env
-# Public (safe to expose to the browser)
-NEXT_PUBLIC_SHOPIFY_API_KEY=<your_app_api_key>
-
-# Server-side
-SHOPIFY_API_KEY=<your_app_api_key>
-SHOPIFY_API_SECRET=<your_app_api_secret>
-SHOPIFY_APP_URL=https://<your-dev-tunnel-or-domain>
+`ini
+NEXT_PUBLIC_SHOPIFY_API_KEY=xxx
+SHOPIFY_API_KEY=xxx
+SHOPIFY_API_SECRET=xxx
+SHOPIFY_APP_URL=https://<dev-tunnel>
 SHOPIFY_SCOPES=read_orders,read_products,read_customers
-
-# Postgres (e.g., Neon/Supabase/Cloud SQL)
 DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
-DIRECT_URL=postgresql://user:pass@host:5432/db?sslmode=require
-```
+DIRECT_URL=
+`
 
-Notes:
+- SHOPIFY_SCOPES is the source of truth (mirrored in shopify.app.toml).
+- Only NEXT*PUBLIC*\* variables are exposed to the browser.
 
-- `DATABASE_URL` and `DIRECT_URL` are required by Prisma (datasource in `schema.prisma`).
-- Only `NEXT_PUBLIC_*` values are exposed to the browser.
+---
 
-## Local Development
+## Development Workflow
 
-Prerequisites
+`ash
 
-- Node 22.x (enforced via `engines`)
-- PNPM 9 (`corepack enable` or `npm i -g pnpm@9`)
-- Shopify CLI (`npm i -g @shopify/cli@latest`), Partner account, dev store
-- A Postgres database (Neon/Supabase/local)
+# Install deps & generate Prisma client
 
-Install & generate
-
-```bash
 pnpm install
-
-# Generate Prisma client and apply migrations
 pnpm -F @jazm/db db:gen
 pnpm -F @jazm/db db:apply
 
-# Optional: open Prisma Studio
-pnpm -F @jazm/db db:studio
-```
+# Dev server (Shopify CLI recommended)
 
-Run the app via Shopify CLI (recommended)
-
-```bash
 cd apps/web
 pnpm shopify:dev
-# Uses shopify.app.toml (auto-updates URLs) and shopify.web.toml (dev/build commands)
-```
 
-Direct Next.js dev (without CLI tunnel)
+# or without CLI tunnelling
 
-```bash
-pnpm -w --filter @jazm/web dev
-```
+pnpm --filter @jazm/web dev
 
-Type-check and lint
+# Quality gates
 
-```bash
-pnpm check-types
-pnpm lint
-```
+pnpm --filter @jazm/web lint
+pnpm --filter @jazm/web build
+pnpm --filter @jazm/web test:unit # Vitest
+`
 
-## HTTP Interfaces
-
-- `POST /api/auth/exchange`
-  - Headers: `Authorization: Bearer <session_token_from_App_Bridge>`
-  - Response: `{ ok: true }` on success
-  - Code: `apps/web/src/app/api/auth/exchange/route.ts`
-
-- `POST /api/webhooks/app-uninstalled`
-  - Headers: `x-shopify-shop-domain`, `x-shopify-hmac-sha256`, etc.
-  - Response: `{ ok: true }`
-  - Code: `apps/web/src/app/api/webhooks/app-uninstalled/route.ts`
-
-GDPR topics are configured; add `/api/webhooks/gdpr` to process compliance events.
-
-## Security
-
-- CSP: dynamic per‑shop `frame-ancestors` via `apps/web/middleware.ts` (falls back to `'none'` if no valid shop).
-- OAuth: exchange transient session tokens for durable offline tokens server‑side only.
-- Secrets: keep only safe values under `NEXT_PUBLIC_*`.
-- Webhooks: validate HMAC (`verifyShopifyHmac.ts`).
-
-## Scripts
-
-Root:
-
-- `pnpm dev` — run all dev servers via Turbo
-- `pnpm build` — build all apps/packages
-- `pnpm check-types` — TypeScript across workspaces
-- `pnpm lint` — ESLint across workspaces
-- `pnpm format` — Prettier formatting
-
-Web app:
-
-- `pnpm --filter @jazm/web dev|build|start`
-- `pnpm --filter @jazm/web shopify:dev`
-
-DB package:
-
-- `pnpm -F @jazm/db db:gen|db:apply|db:new|db:pull|db:studio`
-
-## Documentation & Policies
-
-- ADR: `docs/adr/ADR-0001-graphql-only-and-versioning.md` (GraphQL‑only, quarterly versioning).
-- Navigation: `docs/navigation/top-level-policy.md` (use `shopify://` top‑level navigation when leaving the iframe).
-
-## Troubleshooting
-
-- Shopify CLI version: `npm i -g @shopify/cli@latest`.
-- Module not found `@jazm/db/...`: ensure `@jazm/db` is depended by the web app and `transpilePackages: ['@jazm/db']` is set.
-- Database connection: ensure `DATABASE_URL`/`DIRECT_URL` are present and reachable.
-- Blank iframe in Admin: confirm `NEXT_PUBLIC_SHOPIFY_API_KEY`, CSP config, app install, and `application_url`.
+Playwright examples live in pps/web/tests-examples and pps/web/e2e; they are excluded from the Vitest run until E2E automation is scheduled.
 
 ---
 
-Maintained by the JAZM team.
+## CI & Governance
+
+- **GraphQL-only guard:** .github/workflows/graphql-only.yml blocks Admin REST usage and enforces a single version constant.
+- **Weekly CI:** .github/workflows/ci-weekly-graphql.yml runs lint → build → unit tests on PRs touching Week 4 assets.
+- **Legacy Lighthouse audits:** performance.yml / performance-nightly.yml remain for reference; update or disable when front-end UI ships.
+
+---
+
+Maintained by the JAZM team — contributions welcome (run lint/build/test before opening a PR).
