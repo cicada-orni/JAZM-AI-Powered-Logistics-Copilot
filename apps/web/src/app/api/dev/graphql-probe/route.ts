@@ -3,6 +3,7 @@ import { getGrantedAccessScopes } from '@/lib/shopify-graphql/health'
 import { listRecentPaidOrders } from '@/lib/shopify-graphql/orders'
 import { listRecentCustomers } from '@/lib/shopify-graphql/customers'
 import { listRecentProducts } from '@/lib/shopify-graphql/products'
+import { isShopifyGraphQLRequestError } from '@/lib/shopify-graphql/errors'
 
 export const runtime = 'nodejs'
 
@@ -60,11 +61,15 @@ async function collectSample(
     const count = await takeFirst(factory)
     return { label, status: 'ok', count }
   } catch (err) {
-    const message = formatSampleError(err)
-    const docsUrl = message.includes('protected-customer-data')
-      ? 'https://shopify.dev/docs/apps/launch/protected-customer-data'
-      : undefined
-    return { label, status: 'error', message, docsUrl }
+    if (isShopifyGraphQLRequestError(err)) {
+      return {
+        label,
+        status: 'error',
+        message: err.message,
+        docsUrl: err.docsUrl,
+      }
+    }
+    return { label, status: 'error', message: formatSampleError(err) }
   }
 }
 

@@ -30,13 +30,16 @@
     "@playwright/test": "^1.55.0",
     "@shopify/app-bridge-types": "^0.3.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.8.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-c8": "^0.33.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@9.12.3",
   "engines": {

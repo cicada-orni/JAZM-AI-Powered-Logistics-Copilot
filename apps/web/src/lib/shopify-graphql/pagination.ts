@@ -1,4 +1,9 @@
 import { getAdminGraphQLClient } from '@/lib/admin-graphql'
+import {
+  classifyGraphQLError,
+  createShopifyGraphQLRequestError,
+  type ShopifyGraphQLResponseErrors,
+} from './errors'
 
 type Maybe<T> = T | null | undefined
 
@@ -48,33 +53,33 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function getGraphQLErrorMessage(input: unknown): string | undefined {
-  if (!Array.isArray(input)) return undefined
-  for (const err of input) {
-    if (
-      isObject(err) &&
-      typeof err.message === 'string' &&
-      err.message.trim()
-    ) {
-      return err.message
-    }
-  }
-  return undefined
-}
+// function getGraphQLErrorMessage(input: unknown): string | undefined {
+//   if (!Array.isArray(input)) return undefined
+//   for (const err of input) {
+//     if (
+//       isObject(err) &&
+//       typeof err.message === 'string' &&
+//       err.message.trim()
+//     ) {
+//       return err.message
+//     }
+//   }
+//   return undefined
+// }
 
-function formatGraphQLError(errors: GraphQLResponseErrors): string {
-  const parts: string[] = []
-  if (errors.message) parts.push(errors.message)
-  const firstGraphQLError = getGraphQLErrorMessage(errors.graphQLErrors)
-  if (firstGraphQLError) parts.push(firstGraphQLError)
-  if (!parts.length && errors.networkStatusCode) {
-    parts.push(`Shopify Admin API error (status ${errors.networkStatusCode})`)
-  }
-  if (!parts.length) {
-    parts.push('Shopify Admin API error')
-  }
-  return parts.join(': ')
-}
+// function formatGraphQLError(errors: GraphQLResponseErrors): string {
+//   const parts: string[] = []
+//   if (errors.message) parts.push(errors.message)
+//   const firstGraphQLError = getGraphQLErrorMessage(errors.graphQLErrors)
+//   if (firstGraphQLError) parts.push(firstGraphQLError)
+//   if (!parts.length && errors.networkStatusCode) {
+//     parts.push(`Shopify Admin API error (status ${errors.networkStatusCode})`)
+//   }
+//   if (!parts.length) {
+//     parts.push('Shopify Admin API error')
+//   }
+//   return parts.join(': ')
+// }
 
 export function coerceGraphQLResponse<TData>(
   payload: unknown
@@ -83,10 +88,15 @@ export function coerceGraphQLResponse<TData>(
     throw new Error('Invalid GraphQL response shape')
   }
 
-  const candidate = payload as ShopifyGraphQLClientResponse<TData>
+  const candidate = payload as {
+    data?: TData
+    extensions?: GraphQLExtensions
+    errors?: ShopifyGraphQLResponseErrors
+  }
 
   if (candidate.errors) {
-    throw new Error(formatGraphQLError(candidate.errors))
+    const classified = classifyGraphQLError(candidate.errors)
+    throw createShopifyGraphQLRequestError(classified)
   }
 
   if (candidate.data === undefined || candidate.data === null) {
