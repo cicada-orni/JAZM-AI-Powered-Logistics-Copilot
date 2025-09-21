@@ -1,48 +1,43 @@
 import { NextResponse } from 'next/server'
-import { verifyShopifyHmac } from '@/lib/verifyShopifyHmac'
+import { parseShopifyWebhook, resolveWebhookErrorStatus } from '@/lib/shopify-webhooks'
 import { recordWebhookOnce, markShopRedacted } from '@jazm/db/webhooks'
-import { headers } from 'next/headers'
+import type { InputJsonValue } from '@jazm/db/types'
 
 export async function POST(req: Request) {
-  const raw = Buffer.from(await req.arrayBuffer())
-  const header = await headers()
-
-  const webhook_id = header.get('x-shopify-webhook-d') ?? cryptoRandom()
-  const topic = (header.get('x-shopify-topic') ?? '').toLowerCase()
-  const shop_domain = header.get('x-shopify-shop-domain') ?? ''
-  const triggered_at = header.get('x-shopify-triggered-at') ?? undefined
-  const hmac = header.get('x-shopify-hmac-sha256')
-
   const secret = process.env.SHOPIFY_API_SECRET!
-  const ok = verifyShopifyHmac(secret, raw, hmac)
-  if (!ok) return NextResponse.json({ ok: false }, { status: 401 })
+  try {
+    const { meta, payload } = await parseShopifyWebhook<InputJsonValue>(
+      req,
+      secret
+    )
 
-  const payload = JSON.parse(raw.toString('utf-8'))
+    const firstTime = await recordWebhookOnce({
+      id: meta.webhookId,
+      topic: meta.topic,
+      shopDomain: meta.shop,
+      triggered_at: meta.triggeredAt,
+      payload,
+    })
 
-  const firstTime = await recordWebhookOnce({
-    id: webhook_id,
-    topic,
-    shopDomain: shop_domain,
-    triggered_at,
-    payload,
-  })
-  if (firstTime) {
-    if (topic === 'shop/redact') {
-      // Mandatory: erase merchant data for this shop
-      await markShopRedacted(shop_domain)
-      // (Also: purge app-private data rows keyed by this shop if any)
-    } else if (topic === 'customers/redact') {
-      // Delete/erase customer-specific data (if we store any).
-      // payload contains customer identifiers and orders_to_redact when relevant.
-      // https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance
-    } else if (topic === 'customers/data_request') {
-      // Export customer-related data (if any) and deliver to store owner.
-      // Respond 200 now; do the export asynchronously (queue) to be safe.
+    if (!firstTime) {
+      return NextResponse.json({ ok: true, duplicate: true })
     }
-  }
-  return NextResponse.json({ ok: true })
-}
 
-function cryptoRandom() {
-  return Math.random().toString(36).slice(2)
+    if (meta.topic === 'shop/redact') {
+      await markShopRedacted(meta.shop)
+      // TODO: purge shop-specific data when persisted (address intelligence, etc.)
+    }
+
+    // TODO (later in Week 5): enqueue background jobs for customers/data_request and customers/redact
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    const status = resolveWebhookErrorStatus(error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[webhook gdpr] error', {
+      message,
+      status,
+    })
+    return NextResponse.json({ ok: false }, { status })
+  }
 }
