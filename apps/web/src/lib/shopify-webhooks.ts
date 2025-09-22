@@ -10,10 +10,21 @@ export type ShopifyWebhookMeta = {
   triggeredAt?: string
 }
 
+export type ShopifyWebhookHeaders = Record<string, string | null>
+
 export type ParsedShopifyWebhook<TPayload = unknown> = {
   meta: ShopifyWebhookMeta
   payload: TPayload
   rawBody: Buffer
+  headers: ShopifyWebhookHeaders
+}
+
+function headersToObject(headers: Headers): ShopifyWebhookHeaders {
+  const snapshot: ShopifyWebhookHeaders = {}
+  headers.forEach((value, key) => {
+    snapshot[key] = value
+  })
+  return snapshot
 }
 
 type ErrorWithStatus = Error & { status: number }
@@ -64,13 +75,15 @@ export async function parseShopifyWebhook<TPayload = unknown>(
   if (!verifyHmac(secret, rawBody, hmacHeader)) {
     throw createWebhookError('Invalid HMAC signature', 401)
   }
+
   const apiVersion = headers.get('x-shopify-api-version') ?? ''
-  if (apiVersion !== SHOPIFY_ADMIN_API_VERSION) {
-    console.warn('[webhook] API version drift detected', {
+  if (apiVersion && apiVersion !== SHOPIFY_ADMIN_API_VERSION) {
+    console.warn('[webhook] api version drift', {
       expected: SHOPIFY_ADMIN_API_VERSION,
       received: apiVersion,
     })
   }
+
   const webhookId =
     headers.get('x-shopify-webhook-id') ??
     headers.get('x-shopify-topic-id') ??
@@ -79,17 +92,18 @@ export async function parseShopifyWebhook<TPayload = unknown>(
   const topic = (headers.get('x-shopify-topic') ?? '').toLowerCase()
   const shop = headers.get('x-shopify-shop-domain') ?? ''
   const triggeredAt = headers.get('x-shopify-triggered-at') ?? undefined
-
   const payload = JSON.parse(rawBody.toString('utf-8')) as TPayload
+
   return {
     rawBody,
     payload,
+    headers: headersToObject(headers),
     meta: {
       topic,
       shop,
       webhookId,
       eventId,
-      apiVersion,
+      apiVersion: apiVersion || SHOPIFY_ADMIN_API_VERSION,
       triggeredAt,
     },
   }
