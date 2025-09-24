@@ -34,3 +34,34 @@ model webhook_deliveries {
   @@index([received_at])
   @@index([topic, shop_domain])
 }
+
+model webhook_jobs {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topic        webhook_job_topic
+  shop_domain  String
+  status       webhook_job_status @default(pending)
+  payload      Json?
+  queued_at    DateTime           @default(now()) @db.Timestamptz(6)
+  run_at       DateTime           @default(now()) @db.Timestamptz(6)
+  attempts     Int?
+  last_error   String?
+  last_attempt DateTime?          @db.Timestamptz(6)
+  due_at       DateTime           @db.Timestamptz(6)
+
+  @@index([due_at])
+  @@index([status, run_at])
+  @@index([topic, status])
+}
+
+enum webhook_job_status {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum webhook_job_topic {
+  customers_data_request
+  customers_redact
+  shop_redact
+}

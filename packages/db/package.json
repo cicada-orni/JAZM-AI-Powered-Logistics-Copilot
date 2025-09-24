@@ -8,7 +8,8 @@
     "./webhooks": "./src/webhooks.ts",
     "./getUniqueShop": "./src/getUniqueShop.ts",
     "./prisma": "./src/generated/prisma",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./jobs": "./src/jobs.ts"
   },
   "scripts": {
     "db:new": "prisma migrate dev --create-only",
