@@ -1,74 +1,105 @@
 import { prisma } from './client'
 import { Prisma } from './generated/prisma'
-import type { webhook_job_topic } from './generated/prisma'
+import { webhook_job_topic } from './generated/prisma'
 
 export type WebhookJobTopic = webhook_job_topic
 
-type EnqueWebhookJobParams = {
+type EnqueueWebhookJobParams = {
   topic: WebhookJobTopic
   shopDomain: string
   payload: Prisma.InputJsonValue
-  rutAt?: Date
+  runAt?: Date
   dueAt?: Date
 }
 
-export async function enqueueWebhookJob(params: EnqueWebhookJobParams) {
-  return await prisma.webhook_jobs.create({
+const DEFAULT_DUE_MS = 30 * 24 * 60 * 60 * 1000
+
+// ENQUEUE WEBHOOKS
+export async function enqueueWebhookJob(params: EnqueueWebhookJobParams) {
+  return prisma.webhook_jobs.create({
     data: {
       topic: params.topic,
       shop_domain: params.shopDomain,
       payload: params.payload,
-      run_at: params.rutAt ?? new Date(),
-      due_at: params.dueAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      status: 'pending',
+      run_at: params.runAt ?? new Date(),
+      due_at: params.dueAt ?? new Date(Date.now() + DEFAULT_DUE_MS),
+      attempts: 0,
+      last_error: null,
     },
   })
 }
 
+// RESERVE WEBHOOKS FOR NEXT JOB
 export async function reserveNextWebhookJob(now = new Date()) {
   return prisma.$transaction(async (tx) => {
-    const job = await tx.$queryRaw<{ id: string }[]>`
-            SELECT id FROM webhook_jobs
-            WHERE status = 'pending' AND run_at <= ${now}
-            ORDER BY run_at ASC, queued_at ASC
-            LIMIT 1
-            FOR UPDATE SKIP LOCKED
-        `
-    if (job.length === 0) {
+    const [row] = await tx.$queryRaw<{ id: string; attempts: number | null }[]>`
+      SELECT id, attempts
+      FROM webhook_jobs
+      WHERE status = 'pending' AND run_at <= ${now}
+      ORDER BY run_at ASC, queued_at ASC
+      LIMIT 1
+      FOR UPDATE SKIP LOCKED
+    `
+
+    if (!row) {
       return null
     }
+
+    const attempts = (row.attempts ?? 0) + 1
+
     return tx.webhook_jobs.update({
-      where: { id: job[0].id },
+      where: { id: row.id },
       data: {
         status: 'processing',
-        attempts: { increment: 1 },
+        attempts,
         last_attempt: now,
+        last_error: null,
       },
     })
   })
 }
 
+// COMPLETED WEBHOOK
 export async function completeWebhookJob(id: string) {
   return prisma.webhook_jobs.update({
     where: { id },
     data: {
       status: 'completed',
+      last_error: null,
     },
   })
 }
 
-export async function failWebhookJob(params: {
+// RETRY WEBHOOK
+export async function retryWebhookJob(params: {
   id: string
   nextRunAt: Date
   error: unknown
 }) {
-  const lastError =
+  const message =
     params.error instanceof Error ? params.error.message : String(params.error)
+
+  return prisma.webhook_jobs.update({
+    where: { id: params.id },
+    data: {
+      status: 'pending',
+      run_at: params.nextRunAt,
+      last_error: message,
+    },
+  })
+}
+
+// FAIL WEBHOOK
+export async function failWebhookJob(params: { id: string; error: unknown }) {
+  const message =
+    params.error instanceof Error ? params.error.message : String(params.error)
+
   return prisma.webhook_jobs.update({
     where: { id: params.id },
     data: {
       status: 'failed',
-      last_error: lastError,
-      run_at: params.nextRunAt,
+      last_error: message,
     },
   })
 }

@@ -3,7 +3,6 @@ import {
   resolveWebhookErrorStatus,
   parseShopifyWebhook,
 } from '@/lib/shopify-webhooks'
-import { SHOPIFY_ADMIN_API_VERSION } from '@/config/shopifyApiVersion'
 import { recordWebhookOnce } from '@jazm/db/webhooks'
 import { markUninstalled } from '@jazm/db/shopTokens'
 import type { InputJsonValue } from '@jazm/db/types'

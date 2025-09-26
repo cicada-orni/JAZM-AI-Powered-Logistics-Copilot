@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=github",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:unit:watch": "vitest --watch --config vitest.config.ts"
+    "test:unit:watch": "vitest --watch --config vitest.config.ts",
+    "jobs:worker": "tsx scripts/run-webhook-worker.ts"
   },
   "dependencies": {
     "@jazm/db": "workspace:*",
@@ -41,6 +42,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5",
     "vitest": "^3.2.4"
   },

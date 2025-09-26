@@ -3,9 +3,11 @@ import {
   parseShopifyWebhook,
   resolveWebhookErrorStatus,
 } from '@/lib/shopify-webhooks'
+import { recordWebhookOnce } from '@jazm/db/webhooks'
 import { SHOPIFY_ADMIN_API_VERSION } from '@/config/shopifyApiVersion'
-import { recordWebhookOnce, markShopRedacted } from '@jazm/db/webhooks'
+import { enqueueWebhookJob } from '@jazm/db/jobs'
 import type { InputJsonValue } from '@jazm/db/types'
+import { planGdprJob, toWebhookJobTopic } from '@/jobs/gdpr'
 
 export async function POST(req: Request) {
   const secret = process.env.SHOPIFY_API_SECRET!
@@ -34,12 +36,27 @@ export async function POST(req: Request) {
       })
     }
 
-    if (meta.topic === 'shop/redact') {
-      await markShopRedacted(meta.shop)
-      // TODO Day 4+: purge persisted shop-scoped data
-    }
+    const plan = planGdprJob({
+      topic: meta.topic,
+      shop: meta.shop,
+      webhookId: meta.webhookId,
+      eventId: meta.eventId,
+      payload,
+      receivedAt,
+    })
 
-    return NextResponse.json({ ok: true, latencyMs: dedupe.latencyMs })
+    await enqueueWebhookJob({
+      topic: toWebhookJobTopic(plan.job.topic),
+      shopDomain: plan.job.shopDomain,
+      payload: plan.job,
+      dueAt: plan.dueAt,
+    })
+
+    return NextResponse.json({
+      ok: true,
+      jobQueued: true,
+      latencyMs: dedupe.latencyMs,
+    })
   } catch (error) {
     const status = resolveWebhookErrorStatus(error)
     const message = error instanceof Error ? error.message : 'Unknown error'
