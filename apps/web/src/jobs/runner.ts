@@ -5,6 +5,7 @@ import {
   failWebhookJob,
 } from '@jazm/db/jobs'
 import { parseGdprJobPayload, dispatchGdprJob } from './gdpr'
+import { logWebhookJobEvent } from '@/lib/telemetry/webhooks'
 
 const MAX_ATTEMPTS = 5
 const BASE_RETRY_MS = 10_000
@@ -36,6 +37,13 @@ export async function processNextWebhookJob(
     return { processed: false }
   }
 
+  logWebhookJobEvent({
+    outcome: 'reserved',
+    jobId: job.id,
+    topic: job.topic,
+    attempts: job.attempts ?? 1,
+  })
+
   if (job.due_at && job.due_at < now) {
     logger.warn('[worker] job past due SLA', {
       id: job.id,
@@ -44,10 +52,21 @@ export async function processNextWebhookJob(
     })
   }
 
+  const startedAt = Date.now()
   try {
     const payload = parseGdprJobPayload(job.payload)
     await dispatchGdprJob(payload)
     await completeWebhookJob(job.id)
+
+    const runDurationMs = Date.now() - startedAt
+
+    logWebhookJobEvent({
+      outcome: 'completed',
+      jobId: job.id,
+      topic: job.topic,
+      attempts: job.attempts ?? 1,
+      runDurationMs,
+    })
 
     logger.info('[worker] job completed', {
       id: job.id,
@@ -65,6 +84,17 @@ export async function processNextWebhookJob(
       const nextRunAt = new Date(now.getTime() + delayMs)
 
       await retryWebhookJob({ id: job.id, nextRunAt, error })
+
+      logWebhookJobEvent({
+        outcome: 'retry',
+        jobId: job.id,
+        topic: job.topic,
+        attempts,
+        runDurationMs: Date.now() - startedAt,
+        nextRunAt,
+        message,
+      })
+
       logger.warn('[worker] job retry scheduled', {
         id: job.id,
         topic: job.topic,
@@ -77,6 +107,16 @@ export async function processNextWebhookJob(
     }
 
     await failWebhookJob({ id: job.id, error })
+
+    logWebhookJobEvent({
+      outcome: 'failed',
+      jobId: job.id,
+      topic: job.topic,
+      attempts,
+      runDurationMs: Date.now() - startedAt,
+      message,
+    })
+
     logger.error('[worker] job failed permanently', {
       id: job.id,
       topic: job.topic,

@@ -9,7 +9,8 @@
     "./getUniqueShop": "./src/getUniqueShop.ts",
     "./prisma": "./src/generated/prisma",
     "./types": "./src/types.ts",
-    "./jobs": "./src/jobs.ts"
+    "./jobs": "./src/jobs.ts",
+    "./analytics": "./src/analytics.ts"
   },
   "scripts": {
     "db:new": "prisma migrate dev --create-only",
