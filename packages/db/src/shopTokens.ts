@@ -1,5 +1,4 @@
 import { prisma } from './client'
-
 // To update or create the offline token in shops table
 export async function upsertShopToken(params: {
   shopDomain: string

@@ -23,6 +23,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: DB unit tests
+        run: pnpm --filter @jazm/db test
       - name: Lint web
         run: pnpm --filter @jazm/web lint
       - name: Build @jazm/web
@@ -37,3 +39,7 @@ jobs:
         run: pnpm build
       - name: Unit tests (Vitest)
         run: pnpm --filter @jazm/web test:unit
+      - name: Webhook health report (dry run)
+        env:
+          WEBHOOKS_REPORT_DRY_RUN: '1'
+        run: pnpm --filter @jazm/web webhooks:report

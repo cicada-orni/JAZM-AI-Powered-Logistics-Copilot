@@ -1,38 +1,69 @@
 import { NextResponse } from 'next/server'
-import { verifyShopifyHmac } from '@/lib/verifyShopifyHmac'
+import {
+  resolveWebhookErrorStatus,
+  parseShopifyWebhook,
+  type ShopifyWebhookMeta,
+} from '@/lib/shopify-webhooks'
+import { logWebhookDelivery, logWebhookError } from '@/lib/telemetry/webhooks'
 import { recordWebhookOnce } from '@jazm/db/webhooks'
 import { markUninstalled } from '@jazm/db/shopTokens'
-import { headers } from 'next/headers'
+import type { InputJsonValue } from '@jazm/db/types'
+import { SHOPIFY_ADMIN_API_VERSION } from '@/config/shopifyApiVersion'
 
 export async function POST(req: Request) {
-  const raw = Buffer.from(await req.arrayBuffer())
-  const header = await headers()
-
-  const webhook_id = header.get('x-shopify-webhook-id') ?? cryptoRandom()
-  const topic = header.get('x-shopify-topic') ?? 'unknown'
-  const shop_domain = header.get('x-shopify-shop-domain') ?? ''
-  const triggered_at = header.get('x-shopify-triggered-at') ?? undefined
-  const hmac = header.get('x-shopify-hmac-sha256')
-
   const secret = process.env.SHOPIFY_API_SECRET!
-  const ok = verifyShopifyHmac(secret, raw, hmac)
-  if (!ok) return NextResponse.json({ ok: false }, { status: 401 })
+  let meta: ShopifyWebhookMeta | undefined
 
-  const payload = JSON.parse(raw.toString('utf-8'))
+  try {
+    const receivedAt = new Date()
+    const parsed = await parseShopifyWebhook<InputJsonValue>(req, secret)
+    meta = parsed.meta
 
-  const firstTime = await recordWebhookOnce({
-    id: webhook_id,
-    topic,
-    shopDomain: shop_domain,
-    triggered_at,
-    payload,
-  })
-  if (firstTime) {
-    markUninstalled(shop_domain)
+    const dedupe = await recordWebhookOnce({
+      id: meta.webhookId,
+      eventId: meta.eventId,
+      topic: meta.topic,
+      shopDomain: meta.shop,
+      apiVersion: meta.apiVersion || SHOPIFY_ADMIN_API_VERSION,
+      triggeredAt: meta.triggeredAt,
+      receivedAt,
+      payload: parsed.payload,
+      headers: parsed.headers,
+    })
+
+    if (dedupe.firstDelivery) {
+      await markUninstalled(meta.shop)
+    }
+
+    logWebhookDelivery({
+      handler: 'app-uninstalled',
+      topic: meta.topic,
+      shopDomain: meta.shop,
+      webhookId: meta.webhookId,
+      eventId: meta.eventId,
+      apiVersion: meta.apiVersion,
+      duplicate: !dedupe.firstDelivery,
+      latencyMs: dedupe.latencyMs,
+    })
+
+    return NextResponse.json({
+      ok: true,
+      firstDelivery: dedupe.firstDelivery,
+      latencyMs: dedupe.latencyMs,
+    })
+  } catch (error) {
+    logWebhookError({
+      handler: 'app-uninstalled',
+      topic: meta?.topic,
+      shopDomain: meta?.shop,
+      webhookId: meta?.webhookId,
+      eventId: meta?.eventId,
+      error,
+    })
+
+    const status = resolveWebhookErrorStatus(error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[webhook app-uninstalled] error', { message, status })
+    return NextResponse.json({ ok: false }, { status })
   }
-  return NextResponse.json({ ok: true })
-}
-
-function cryptoRandom() {
-  return Math.random().toString(36).slice(2)
 }

@@ -33,53 +33,9 @@ export type GraphQLResponse<TData> = {
   extensions?: GraphQLExtensions
 }
 
-type GraphQLClientError = {
-  message?: string
-}
-
-type GraphQLResponseErrors = {
-  message?: string
-  graphQLErrors?: GraphQLClientError[]
-  networkStatusCode?: number
-}
-
-type ShopifyGraphQLClientResponse<TData> = {
-  data?: TData
-  extensions?: GraphQLExtensions
-  errors?: GraphQLResponseErrors
-}
-
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
-
-// function getGraphQLErrorMessage(input: unknown): string | undefined {
-//   if (!Array.isArray(input)) return undefined
-//   for (const err of input) {
-//     if (
-//       isObject(err) &&
-//       typeof err.message === 'string' &&
-//       err.message.trim()
-//     ) {
-//       return err.message
-//     }
-//   }
-//   return undefined
-// }
-
-// function formatGraphQLError(errors: GraphQLResponseErrors): string {
-//   const parts: string[] = []
-//   if (errors.message) parts.push(errors.message)
-//   const firstGraphQLError = getGraphQLErrorMessage(errors.graphQLErrors)
-//   if (firstGraphQLError) parts.push(firstGraphQLError)
-//   if (!parts.length && errors.networkStatusCode) {
-//     parts.push(`Shopify Admin API error (status ${errors.networkStatusCode})`)
-//   }
-//   if (!parts.length) {
-//     parts.push('Shopify Admin API error')
-//   }
-//   return parts.join(': ')
-// }
 
 export function coerceGraphQLResponse<TData>(
   payload: unknown

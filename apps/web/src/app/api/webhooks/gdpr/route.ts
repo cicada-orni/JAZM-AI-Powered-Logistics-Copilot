@@ -1,48 +1,102 @@
 import { NextResponse } from 'next/server'
-import { verifyShopifyHmac } from '@/lib/verifyShopifyHmac'
-import { recordWebhookOnce, markShopRedacted } from '@jazm/db/webhooks'
-import { headers } from 'next/headers'
+import {
+  parseShopifyWebhook,
+  resolveWebhookErrorStatus,
+  type ShopifyWebhookMeta,
+} from '@/lib/shopify-webhooks'
+import { logWebhookDelivery, logWebhookError } from '@/lib/telemetry/webhooks'
+import { recordWebhookOnce } from '@jazm/db/webhooks'
+import { SHOPIFY_ADMIN_API_VERSION } from '@/config/shopifyApiVersion'
+import { enqueueWebhookJob } from '@jazm/db/jobs'
+import type { InputJsonValue } from '@jazm/db/types'
+import { planGdprJob, toWebhookJobTopic } from '@/jobs/gdpr'
 
 export async function POST(req: Request) {
-  const raw = Buffer.from(await req.arrayBuffer())
-  const header = await headers()
-
-  const webhook_id = header.get('x-shopify-webhook-d') ?? cryptoRandom()
-  const topic = (header.get('x-shopify-topic') ?? '').toLowerCase()
-  const shop_domain = header.get('x-shopify-shop-domain') ?? ''
-  const triggered_at = header.get('x-shopify-triggered-at') ?? undefined
-  const hmac = header.get('x-shopify-hmac-sha256')
-
   const secret = process.env.SHOPIFY_API_SECRET!
-  const ok = verifyShopifyHmac(secret, raw, hmac)
-  if (!ok) return NextResponse.json({ ok: false }, { status: 401 })
+  let meta: ShopifyWebhookMeta | undefined
 
-  const payload = JSON.parse(raw.toString('utf-8'))
+  try {
+    const receivedAt = new Date()
+    const parsed = await parseShopifyWebhook<InputJsonValue>(req, secret)
+    meta = parsed.meta
 
-  const firstTime = await recordWebhookOnce({
-    id: webhook_id,
-    topic,
-    shopDomain: shop_domain,
-    triggered_at,
-    payload,
-  })
-  if (firstTime) {
-    if (topic === 'shop/redact') {
-      // Mandatory: erase merchant data for this shop
-      await markShopRedacted(shop_domain)
-      // (Also: purge app-private data rows keyed by this shop if any)
-    } else if (topic === 'customers/redact') {
-      // Delete/erase customer-specific data (if we store any).
-      // payload contains customer identifiers and orders_to_redact when relevant.
-      // https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance
-    } else if (topic === 'customers/data_request') {
-      // Export customer-related data (if any) and deliver to store owner.
-      // Respond 200 now; do the export asynchronously (queue) to be safe.
+    const dedupe = await recordWebhookOnce({
+      id: meta.webhookId,
+      eventId: meta.eventId,
+      topic: meta.topic,
+      shopDomain: meta.shop,
+      apiVersion: meta.apiVersion || SHOPIFY_ADMIN_API_VERSION,
+      triggeredAt: meta.triggeredAt,
+      receivedAt,
+      payload: parsed.payload,
+      headers: parsed.headers,
+    })
+
+    if (!dedupe.firstDelivery) {
+      logWebhookDelivery({
+        handler: 'gdpr',
+        topic: meta.topic,
+        shopDomain: meta.shop,
+        webhookId: meta.webhookId,
+        eventId: meta.eventId,
+        apiVersion: meta.apiVersion,
+        duplicate: true,
+        latencyMs: dedupe.latencyMs,
+      })
+      return NextResponse.json({
+        ok: true,
+        duplicate: true,
+        latencyMs: dedupe.latencyMs,
+      })
     }
-  }
-  return NextResponse.json({ ok: true })
-}
 
-function cryptoRandom() {
-  return Math.random().toString(36).slice(2)
+    const plan = planGdprJob({
+      topic: meta.topic,
+      shop: meta.shop,
+      webhookId: meta.webhookId,
+      eventId: meta.eventId,
+      payload: parsed.payload,
+      receivedAt,
+    })
+
+    const jobRecord = await enqueueWebhookJob({
+      topic: toWebhookJobTopic(plan.job.topic),
+      shopDomain: plan.job.shopDomain,
+      payload: plan.job,
+      dueAt: plan.dueAt,
+    })
+
+    logWebhookDelivery({
+      handler: 'gdpr',
+      topic: meta.topic,
+      shopDomain: meta.shop,
+      webhookId: meta.webhookId,
+      eventId: meta.eventId,
+      apiVersion: meta.apiVersion,
+      duplicate: false,
+      latencyMs: dedupe.latencyMs,
+      jobId: jobRecord.id,
+    })
+
+    return NextResponse.json({
+      ok: true,
+      jobQueued: true,
+      latencyMs: dedupe.latencyMs,
+      jobId: jobRecord.id,
+    })
+  } catch (error) {
+    logWebhookError({
+      handler: 'gdpr',
+      topic: meta?.topic,
+      shopDomain: meta?.shop,
+      webhookId: meta?.webhookId,
+      eventId: meta?.eventId,
+      error,
+    })
+
+    const status = resolveWebhookErrorStatus(error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[webhook gdpr] error', { message, status })
+    return NextResponse.json({ ok: false }, { status })
+  }
 }
