@@ -13,6 +13,10 @@ const gdprMock = vi.hoisted(() => ({
   dispatchSpy: vi.fn(),
 }))
 
+const logsMock = vi.hoisted(() => ({
+  jobLogSpy: vi.fn(),
+}))
+
 vi.mock('@jazm/db/jobs', () => ({
   reserveNextWebhookJob: jobsMock.reserveSpy,
   completeWebhookJob: jobsMock.completeSpy,
@@ -25,8 +29,13 @@ vi.mock('../gdpr', () => ({
   dispatchGdprJob: gdprMock.dispatchSpy,
 }))
 
+vi.mock('@/lib/telemetry/webhooks', () => ({
+  logWebhookJobEvent: logsMock.jobLogSpy,
+}))
+
 const { reserveSpy, completeSpy, retrySpy, failSpy } = jobsMock
 const { parseSpy, dispatchSpy } = gdprMock
+const { jobLogSpy } = logsMock
 
 const logger = {
   info: vi.fn(),
@@ -71,7 +80,11 @@ describe('processNextWebhookJob', () => {
 
     expect(result).toEqual({ processed: true, outcome: 'completed' })
     expect(dispatchSpy).toHaveBeenCalledWith(jobPayload)
+
     expect(completeSpy).toHaveBeenCalledWith('job-1')
+    expect(jobLogSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: 'completed', jobId: 'job-1' })
+    )
   })
 
   it('schedules retry when attempts remain', async () => {

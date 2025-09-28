@@ -4,7 +4,35 @@ import {
 } from '@jazm/db/analytics'
 import { SHOPIFY_ADMIN_API_VERSION } from '../src/config/shopifyApiVersion'
 
-async function main() {
+const DRY_RUN = process.env.WEBHOOKS_REPORT_DRY_RUN === '1'
+
+async function loadMetrics() {
+  if (DRY_RUN) {
+    return {
+      deliveries: [
+        {
+          topic: 'customers/data_request',
+          deliveries: 0,
+          duplicateEvents: 0,
+          p95LatencyMs: null,
+          versionDrift: 0,
+          lastReceivedAt: null,
+        },
+      ],
+      jobs: [
+        {
+          topic: 'customers_data_request',
+          pending: 0,
+          processing: 0,
+          completed: 0,
+          failed: 0,
+          overdue: 0,
+          p95Attempts: null,
+        },
+      ],
+    }
+  }
+
   const [deliveries, jobs] = await Promise.all([
     getWebhookDeliveryMetrics({
       expectedApiVersion: SHOPIFY_ADMIN_API_VERSION,
@@ -12,6 +40,16 @@ async function main() {
     }),
     getWebhookJobMetrics(),
   ])
+
+  return { deliveries, jobs }
+}
+
+async function main() {
+  if (DRY_RUN) {
+    console.info('[webhooks-report] Running in dry-run mode')
+  }
+
+  const { deliveries, jobs } = await loadMetrics()
 
   console.log('\nWebhook deliveries (24h)')
   console.table(
