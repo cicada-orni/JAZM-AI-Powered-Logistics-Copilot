@@ -20,6 +20,24 @@ export type WebhookJobMetrics = {
   p95Attempts: number | null
 }
 
+function coerceNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (typeof value === 'bigint') {
+    return Number(value)
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function coerceCount(value: unknown): number {
+  return coerceNullableNumber(value) ?? 0
+}
+
 export async function getWebhookDeliveryMetrics(params: {
   expectedApiVersion: string
   sinceHours?: number
@@ -32,16 +50,14 @@ export async function getWebhookDeliveryMetrics(params: {
     ? Prisma.sql`WHERE received_at >= ${since}`
     : Prisma.sql``
 
-  const rows = await prisma.$queryRaw<
-    {
-      topic: string
-      deliveries: bigint
-      duplicate_events: bigint
-      p95_latency_ms: unknown
-      version_drift: bigint
-      last_received_at: Date | null
-    }[]
-  >(Prisma.sql`
+  const rows = await prisma.$queryRaw<{
+    topic: string
+    deliveries: unknown
+    duplicate_events: unknown
+    p95_latency_ms: unknown
+    version_drift: unknown
+    last_received_at: Date | null
+  }[]>(Prisma.sql`
     SELECT
       topic,
       COUNT(*)::bigint AS deliveries,
@@ -58,31 +74,24 @@ export async function getWebhookDeliveryMetrics(params: {
 
   return rows.map((row) => ({
     topic: row.topic,
-    deliveries: Number(row.deliveries ?? 0n),
-    duplicateEvents: Number(row.duplicate_events ?? 0n),
-    p95LatencyMs:
-      row.p95_latency_ms === null || row.p95_latency_ms === undefined
-        ? null
-        : Number(row.p95_latency_ms),
-    versionDrift: Number(row.version_drift ?? 0n),
-    lastReceivedAt: row.last_received_at
-      ? new Date(row.last_received_at)
-      : null,
+    deliveries: coerceCount(row.deliveries),
+    duplicateEvents: coerceCount(row.duplicate_events),
+    p95LatencyMs: coerceNullableNumber(row.p95_latency_ms),
+    versionDrift: coerceCount(row.version_drift),
+    lastReceivedAt: row.last_received_at ? new Date(row.last_received_at) : null,
   }))
 }
 
 export async function getWebhookJobMetrics(): Promise<WebhookJobMetrics[]> {
-  const rows = await prisma.$queryRaw<
-    {
-      topic: string
-      pending: bigint
-      processing: bigint
-      completed: bigint
-      failed: bigint
-      overdue: bigint
-      p95_attempts: unknown
-    }[]
-  >(Prisma.sql`
+  const rows = await prisma.$queryRaw<{
+    topic: string
+    pending: unknown
+    processing: unknown
+    completed: unknown
+    failed: unknown
+    overdue: unknown
+    p95_attempts: unknown
+  }[]>(Prisma.sql`
     SELECT
       topic,
       COUNT(*) FILTER (WHERE status = 'pending')::bigint AS pending,
@@ -100,14 +109,11 @@ export async function getWebhookJobMetrics(): Promise<WebhookJobMetrics[]> {
 
   return rows.map((row) => ({
     topic: row.topic,
-    pending: Number(row.pending ?? 0n),
-    processing: Number(row.processing ?? 0n),
-    completed: Number(row.completed ?? 0n),
-    failed: Number(row.failed ?? 0n),
-    overdue: Number(row.overdue ?? 0n),
-    p95Attempts:
-      row.p95_attempts === null || row.p95_attempts === undefined
-        ? null
-        : Number(row.p95_attempts),
+    pending: coerceCount(row.pending),
+    processing: coerceCount(row.processing),
+    completed: coerceCount(row.completed),
+    failed: coerceCount(row.failed),
+    overdue: coerceCount(row.overdue),
+    p95Attempts: coerceNullableNumber(row.p95_attempts),
   }))
 }

@@ -9,22 +9,24 @@ afterEach(() => {
 describe('getWebhookDeliveryMetrics', () => {
   it('maps SQL rows into delivery metrics', async () => {
     const now = new Date('2025-09-24T12:00:00Z')
-    vi.spyOn(prisma, '$queryRaw').mockResolvedValueOnce([
-      {
-        topic: 'customers/redact',
-        deliveries: 5n,
-        duplicate_events: 1n,
-        p95_latency_ms: 120,
-        version_drift: 0n,
-        last_received_at: now,
-      },
-    ])
+    const querySpy = vi
+      .spyOn(prisma, '$queryRaw')
+      .mockResolvedValueOnce([
+        {
+          topic: 'customers/redact',
+          deliveries: 5,
+          duplicate_events: 1,
+          p95_latency_ms: 120,
+          version_drift: 0,
+          last_received_at: now,
+        },
+      ])
 
     const metrics = await getWebhookDeliveryMetrics({
       expectedApiVersion: '2025-07',
     })
 
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1)
+    expect(querySpy).toHaveBeenCalledTimes(1)
     expect(metrics).toEqual([
       {
         topic: 'customers/redact',
@@ -40,21 +42,23 @@ describe('getWebhookDeliveryMetrics', () => {
 
 describe('getWebhookJobMetrics', () => {
   it('maps SQL rows into job metrics', async () => {
-    vi.spyOn(prisma, '$queryRaw').mockResolvedValueOnce([
-      {
-        topic: 'customers_redact',
-        pending: 2n,
-        processing: 1n,
-        completed: 7n,
-        failed: 0n,
-        overdue: 0n,
-        p95_attempts: 2,
-      },
-    ])
+    const querySpy = vi
+      .spyOn(prisma, '$queryRaw')
+      .mockResolvedValueOnce([
+        {
+          topic: 'customers_redact',
+          pending: 2,
+          processing: 1,
+          completed: 7,
+          failed: 0,
+          overdue: 0,
+          p95_attempts: 2,
+        },
+      ])
 
     const metrics = await getWebhookJobMetrics()
 
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1)
+    expect(querySpy).toHaveBeenCalledTimes(1)
     expect(metrics).toEqual([
       {
         topic: 'customers_redact',

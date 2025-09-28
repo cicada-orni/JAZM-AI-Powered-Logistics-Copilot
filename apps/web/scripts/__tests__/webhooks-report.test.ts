@@ -5,7 +5,6 @@ vi.mock('@jazm/db/analytics', () => ({
   getWebhookJobMetrics: vi.fn(),
 }))
 
-const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
 const tableSpy = vi.spyOn(console, 'table').mockImplementation(() => {})
 
