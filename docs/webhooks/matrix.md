@@ -1,0 +1,10 @@
+# Shopify Webhook Matrix (Week 5)
+
+| Topic                  | Purpose                             | Scopes                                   | Delivery URL                  | API Version | Dedup Key          | Queue Topic            | Handler                    | SLA / Due Window                  | Telemetry / Alerts                                         |
+| ---------------------- | ----------------------------------- | ---------------------------------------- | ----------------------------- | ----------- | ------------------ | ---------------------- | -------------------------- | --------------------------------- | ---------------------------------------------------------- |
+| app/uninstalled        | Lifecycle cleanup & uninstall state | read_orders,read_products,read_customers | /api/webhooks/app-uninstalled | 2025-07     | X-Shopify-Event-Id | n/a (synchronous)      | markUninstalled (inline)   | Ack <5s, retention prune @ 7 days | `webhook.delivery` log; reinstall validation checklist     |
+| customers/data_request | GDPR export                         | read_customers                           | /api/webhooks/gdpr            | 2025-07     | X-Shopify-Event-Id | customers_data_request | handleCustomersDataRequest | Ack <5s; fulfil = 30 days         | Delivery log + queue metrics; overdue alert TODO           |
+| customers/redact       | GDPR delete                         | read_customers                           | /api/webhooks/gdpr            | 2025-07     | X-Shopify-Event-Id | customers_redact       | handleCustomersRedact      | Ack <5s; purge = 30 days          | Delivery log; retry alert stub; worker metrics             |
+| shop/redact            | Full shop purge                     | read_orders,read_products,read_customers | /api/webhooks/gdpr            | 2025-07     | X-Shopify-Event-Id | shop_redact            | handleShopRedact           | Ack <5s; due = 48h post-uninstall | Delivery log; overdue watchdog; CLI health report snapshot |
+
+> Matrix maintained alongside Week 5 guidelines. Update when topics, handlers, or SLA policies change.
